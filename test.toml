@@ -1,0 +1,27 @@
+[Compiler]
+prefix_group = "clang"
+cmd = "clang" # Executable command of the compiler
+source_extensions = [".c"]
+source_out_extension = ".o"
+
+[Build.Entries.ax_utility_lib]
+label = "ax_utility_lib"
+flags = ["hi"]
+definitions = ["AX_UM", "AX_WIN64"]
+link_hooks = ["./src/"] # If path starts with '.' then it should be relative to base_directory field
+base_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib"
+build_directory = "./build/WIN_UM/"
+version_control = true
+dependencies = []
+
+[Build.Entries.ax_virt_layer]
+label = "ax_virt_layer"
+flags = []
+definitions = []
+link_hooks = ["./src/", "${ax_utility_lib}/headers"]
+base_directory = "D:/ax_project/ax_virt_layer/win64/user"
+build_directory = "./build"
+version_control = true
+dependencies = [
+	"ax_utility_lib"
+]
