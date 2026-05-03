@@ -13,7 +13,7 @@ const(
 type FileType uint8
 const(
 	FILE_EXE FileType = iota 	// Windows Executable
-	FILE_SLIB  			// Static library
+	FILE_LIB  			// Static library
 )
 
 type PrefixDesc struct{
@@ -32,9 +32,9 @@ type Entry struct{
 	LinkHooks 		[]string	`toml:"link_hooks"`
 	Dependencies 		[]string	`toml:"dependencies"`
 	Definitions 		[]string	`toml:"definitions"`
-	Flags 			[]string	`toml:"flags"`
-	LinkFlags 		[]string	`toml:"link_flags"`
-	CompileFlags 		[]string	`toml:"compile_flags"`
+	LinkerFlags 		[]string	`toml:"linker_flags"`
+	LibraryFlags 		[]string	`toml:"library_flags"`
+	CompilerFlags 		[]string	`toml:"compiler_flags"`
 	OutputType 		FileType	`toml:"output_type"`
 	OutputBasename 		string		`toml:"output_basename"`
 }
@@ -45,9 +45,12 @@ type Doc struct{
 	Compiler struct{
 		SourceOutExtension	string		`toml:"source_out_extension"`
 		SourceExtensions 	[]string	`toml:"source_extensions"`
-		CompilePrefixGroup 	PrefixDesc	`toml:"compile_prefix_group"`
+		CompilerPrefixGroup 	PrefixDesc	`toml:"compiler_prefix_group"`
+		LinkerPrefixGroup 	PrefixDesc	`toml:"linker_prefix_group"`
 		LibraryPrefixGroup 	PrefixDesc	`toml:"library_prefix_group"`
-		Cmd 			string		`toml:"cmd"`
+		CompilerCmd 		string		`toml:"compiler_cmd"`
+		LinkerCmd 		string		`toml:"linker_cmd"`
+		LibraryCmd 		string		`toml:"library_cmd"`
 	} `toml:"Compiler"`
 }
 

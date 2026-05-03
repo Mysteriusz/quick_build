@@ -12,7 +12,7 @@ func (_type *FileType) UnmarshalText(_text []byte) error{
 	case "executable":
 		*_type = FILE_EXE
 	case "static_library":
-		*_type = FILE_SLIB
+		*_type = FILE_LIB
 	default:
 		ERR(fmt.Sprintf("Unknown file type: %s", string(_text)))
 		return errors.New("")

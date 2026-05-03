@@ -1,21 +1,26 @@
 [Compiler]
-compile_prefix_group = "clang"
+
+compiler_prefix_group = "clang"
 library_prefix_group = "ar"
-cmd = "clang" # Executable command of the compiler
+
+compiler_cmd = "clang" # Executable command of the compiler
+library_cmd = "ar"  # Executable command of the library creator
+
 source_extensions = [".c"]
 source_out_extension = ".o"
 
 [Build.Entries.ax_utility_lib]
 label = "ax_utility_lib"
-flags = [
+library_flags = [
+	"rcs"
+]
+compiler_flags = [
 	"m64",
 	"Wno-deprecated-declarations",
 	"std=c23",
 	"mavx2",
 	"mbmi2",
 ]
-link_flags = []
-compile_flags = []
 definitions = ["AX_UM", "AX_WIN64"]
 #
 # 	If path starts with '.',
@@ -40,7 +45,6 @@ dependencies = []
 
 [Build.Entries.ax_virt_layer]
 label = "ax_virt_layer"
-flags = []
 definitions = []
 link_hooks = ["./src/", "${ax_utility_lib}/headers"]
 base_directory = "D:/ax_project/ax_virt_layer/win64/user"
