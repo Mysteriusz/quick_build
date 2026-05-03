@@ -1,16 +1,40 @@
 [Compiler]
-prefix_group = "clang"
+compile_prefix_group = "clang"
+library_prefix_group = "ar"
 cmd = "clang" # Executable command of the compiler
 source_extensions = [".c"]
 source_out_extension = ".o"
 
 [Build.Entries.ax_utility_lib]
 label = "ax_utility_lib"
-flags = ["hi"]
+flags = [
+	"m64",
+	"Wno-deprecated-declarations",
+	"std=c23",
+	"mavx2",
+	"mbmi2",
+]
+link_flags = []
+compile_flags = []
 definitions = ["AX_UM", "AX_WIN64"]
-link_hooks = ["./src/"] # If path starts with '.' then it should be relative to base_directory field
+#
+# 	If path starts with '.',
+#	then it should be relative to base_directory field.
+#
+# 	If path starts with '${ENTRY_NAME} and ENTRY_NAME being an existing entry name,
+#	then it should be relative to entry build_directory.
+#
+link_hooks = [
+	"./src/",
+	"./src/ext",
+	"./src/io",
+	"./src/data",
+	"C:/msys64/ucrt64/include",
+]
 base_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib"
 build_directory = "./build/WIN_UM/"
+output_type = "static_library"
+output_basename = "ax_utility_lib.lib"
 version_control = true
 dependencies = []
 
@@ -21,7 +45,8 @@ definitions = []
 link_hooks = ["./src/", "${ax_utility_lib}/headers"]
 base_directory = "D:/ax_project/ax_virt_layer/win64/user"
 build_directory = "./build"
+output_type = "executable"
+output_basename = "ax_virt_layer.exe"
 version_control = true
 dependencies = [
-	"ax_utility_lib"
 ]

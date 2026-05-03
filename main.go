@@ -5,9 +5,8 @@ func main(){
 	if !res{
 		return
 	}
-	_ = doc
 
-	res = cfg_build(doc, "ax_virt_layer")
+	res = cfg_build(doc, "ax_utility_lib")
 	if !res{
 		return
 	}

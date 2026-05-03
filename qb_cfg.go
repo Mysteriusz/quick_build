@@ -1,14 +1,28 @@
 package main
 
-import (
+import(
 	"os"
 )
 
-type CfgType int
-const (
-	CFG_KM = iota
+type CfgType uint8
+const(
+	CFG_KM CfgType = iota
 	CFG_UM
 )
+
+type FileType uint8
+const(
+	FILE_EXE FileType = iota 	// Windows Executable
+	FILE_SLIB  			// Static library
+)
+
+type PrefixDesc struct{
+	SRC string
+	OUT string
+	INC string
+	DEF string
+	FLG string
+}
 
 type Entry struct{
 	Label 			string 		`toml:"label"`
@@ -19,6 +33,10 @@ type Entry struct{
 	Dependencies 		[]string	`toml:"dependencies"`
 	Definitions 		[]string	`toml:"definitions"`
 	Flags 			[]string	`toml:"flags"`
+	LinkFlags 		[]string	`toml:"link_flags"`
+	CompileFlags 		[]string	`toml:"compile_flags"`
+	OutputType 		FileType	`toml:"output_type"`
+	OutputBasename 		string		`toml:"output_basename"`
 }
 type Doc struct{
 	Build struct{
@@ -27,7 +45,8 @@ type Doc struct{
 	Compiler struct{
 		SourceOutExtension	string		`toml:"source_out_extension"`
 		SourceExtensions 	[]string	`toml:"source_extensions"`
-		PrefixGroup 		string		`toml:"prefix_group"`
+		CompilePrefixGroup 	PrefixDesc	`toml:"compile_prefix_group"`
+		LibraryPrefixGroup 	PrefixDesc	`toml:"library_prefix_group"`
 		Cmd 			string		`toml:"cmd"`
 	} `toml:"Compiler"`
 }
