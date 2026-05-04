@@ -7,9 +7,9 @@ import(
 	"path/filepath"
 )
 
-func cfg_path_resolve(_doc *Doc, _entry *Entry, _rel_path string) (string, bool){
-	if _entry == nil{
-		ERR("Invlalid argument.")
+func cfg_path_resolve(_doc *Doc, _key string, _rel_path string) (string, bool){
+	if _doc == nil{
+		ERR("Invalid Document.")
 		return "", false
 	}
 	if len(_rel_path) == 0{
@@ -17,14 +17,16 @@ func cfg_path_resolve(_doc *Doc, _entry *Entry, _rel_path string) (string, bool)
 		return "", false
 	}
 
+	var entry *Entry = entry_from_key(_doc, _key)
 	var builder strings.Builder
+
 	switch _rel_path[0]{
 	/*
 		If hook starts with '.' character it should be relative to _entry.BuildDirectory field.
 	*/
 	case '.':
 		builder.WriteString(filepath.Join(
-			_entry.BaseDirectory,
+			entry.BaseDirectory,
 			_rel_path))
 	/*
 		If hook starts with '$' character it means the string is a reference to a dependency build_directory field.
@@ -33,9 +35,10 @@ func cfg_path_resolve(_doc *Doc, _entry *Entry, _rel_path string) (string, bool)
 		regex := regexp.MustCompile(`^\${(.+)}`)
 		exp := regex.FindStringSubmatch(_rel_path)
 		if len(exp) == 2{ // ONLY A SINGLE CASE FOR NOW 
-			dep := _doc.Build.Entries[exp[1]]
+			var dep_entry *Entry = entry_from_key(_doc, exp[1])
+
 			// Resolve the field of the dependency
-			dep_str, res := cfg_path_resolve(_doc, &dep, dep.BuildDirectory)
+			dep_str, res := cfg_path_resolve(_doc, exp[1], dep_entry.BaseDirectory)
 			if !res{
 				return "", false
 			}

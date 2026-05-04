@@ -53,13 +53,14 @@ func cfg_um_decode(file *os.File) (*Doc, bool){
 		return nil, false
 	}
 
-	doc := Doc{}
-	err := toml.NewDecoder(file).Decode(&doc)
+	var doc = &Doc{}
+
+	err := toml.NewDecoder(file).Decode(doc)
 	if err != nil{
 		ERR("Config decoding failed.", err)
 		return nil, false
 	}
 
-	return &doc, true
+	return doc, true
 }
 

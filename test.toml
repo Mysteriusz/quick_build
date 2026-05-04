@@ -1,3 +1,49 @@
+#
+#	Field descriptions:
+#
+#	[Compiler] -> Compiler related parameteres
+#
+#	compiler_prefix_group -> Name of a supported compiler
+#	library_prefix_group -> Name of a supported library creator
+#	linker_prefix_group -> Name of a supported linker
+#
+#	compiler_cmd -> Command line executable of the compiler
+#	library_cmd -> Command line executable of the library creator
+#	linker_cmd -> Command line executable of the linker
+#
+#	source_extensions -> File extensions that should be processed
+#	source_out_extension -> Compiler source file output extension
+#
+#	[Entries.XX]
+#
+#	==============================================
+#
+# 	If path starts with '.',
+#	then it should be relative to base_directory field.
+#
+# 	If path starts with '${NAME} and NAME being an existing entry name,
+#	then it should be relative to NAME`s entry build_directory.
+#
+# 	==============================================
+#
+#	label -> Label that should show when refering to this entry
+#	compiler_flags -> Flags for the compiler
+#	library_flags -> Flags for the library creator
+#	linker_flags -> Flags for the linker
+#
+#	definitions -> Compile variables for the entry
+#	link_hooks -> Directories/headers to include in the build
+#
+#	base_directory -> Root directory of the project
+#	build_directory -> Directory to store all the build/temp files
+#
+#	output_type -> Name of a supported output type
+#	output_basenem -> File + extension of the output file
+#
+#	version_control -> Should output store last build information? (USE FOR FASTER COMPILE TIME)
+#	dependencies -> Names (NOT LABELS) of other entries to compile before this entry
+#
+
 [Compiler]
 
 compiler_prefix_group = "clang"
@@ -9,7 +55,7 @@ library_cmd = "ar"  # Executable command of the library creator
 source_extensions = [".c"]
 source_out_extension = ".o"
 
-[Build.Entries.ax_utility_lib]
+[Entries.ax_utility_lib]
 label = "ax_utility_lib"
 library_flags = [
 	"rcs"
@@ -21,14 +67,10 @@ compiler_flags = [
 	"mavx2",
 	"mbmi2",
 ]
-definitions = ["AX_UM", "AX_WIN64"]
-#
-# 	If path starts with '.',
-#	then it should be relative to base_directory field.
-#
-# 	If path starts with '${ENTRY_NAME} and ENTRY_NAME being an existing entry name,
-#	then it should be relative to entry build_directory.
-#
+definitions = [
+	"AX_UM",
+	"AX_WIN64"
+]
 link_hooks = [
 	"./src/",
 	"./src/ext",
@@ -43,7 +85,7 @@ output_basename = "ax_utility_lib.lib"
 version_control = true
 dependencies = []
 
-[Build.Entries.ax_virt_layer]
+[Entries.ax_virt_layer]
 label = "ax_virt_layer"
 definitions = []
 link_hooks = ["./src/", "${ax_utility_lib}/headers"]

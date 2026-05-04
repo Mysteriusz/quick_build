@@ -28,6 +28,7 @@ type Entry struct{
 	Label 			string 		`toml:"label"`
 	BuildDirectory 		string		`toml:"build_directory"`
 	BaseDirectory 		string		`toml:"base_directory"`
+	SrcDirectory 		string		`toml:"src_directory"`
 	VersionControl 		bool		`toml:"version_control"`
 	LinkHooks 		[]string	`toml:"link_hooks"`
 	Dependencies 		[]string	`toml:"dependencies"`
@@ -39,9 +40,7 @@ type Entry struct{
 	OutputBasename 		string		`toml:"output_basename"`
 }
 type Doc struct{
-	Build struct{
-		Entries 	map[string]Entry `toml:"Entries"`
-	} `toml:"Build"`
+	Entries 			map[string]Entry `toml:"Entries"`
 	Compiler struct{
 		SourceOutExtension	string		`toml:"source_out_extension"`
 		SourceExtensions 	[]string	`toml:"source_extensions"`
@@ -53,6 +52,17 @@ type Doc struct{
 		LibraryCmd 		string		`toml:"library_cmd"`
 	} `toml:"Compiler"`
 }
+func entry_from_key(_doc *Doc, _key string) *Entry{
+	if _doc == nil{
+		panic("Invalid entry key.")
+	}
+	entry, exists := _doc.Entries[_key]
+	if !exists{
+		panic("Invalid entry key.")
+	}
+
+	return &entry
+}
 
 func cfg_load(_type CfgType, _file string) (*Doc, bool){
 	file, err := os.Open(_file)
@@ -62,10 +72,8 @@ func cfg_load(_type CfgType, _file string) (*Doc, bool){
 	}
 	defer file.Close()
 
-
-	// Document buffer
-	doc := &Doc{}
-	res := false
+	var res bool
+	var doc *Doc
 
 	switch _type{
 	case CFG_UM:
@@ -85,16 +93,13 @@ func cfg_load(_type CfgType, _file string) (*Doc, bool){
 }
 
 // Create a stack of entries to build
-func cfg_gather_deps(_doc *Doc, _root string, _deps map[string]bool, _deps_stack []*Entry) ([]*Entry, bool){
+func cfg_gather_deps(_doc *Doc, _root string, _deps map[string]bool, _deps_stack []string) ([]string, bool){
 	if _doc == nil{
-		ERR("Unresolved Document.")
+		ERR("Invalid Document.")
 		return nil, false
 	}
-	entry, exists := _doc.Build.Entries[_root]
-	if exists == false{
-		ERR("Unresolved dependency.")
-		return nil, false
-	}
+
+	entry := entry_from_key(_doc, _root)
 
 	if _deps[_root]{ // Dependency already exists
 		ERR("Dependencies are nested.")
@@ -119,23 +124,23 @@ func cfg_gather_deps(_doc *Doc, _root string, _deps map[string]bool, _deps_stack
 end:
 
 	// Add this entry after processing all entry depenedencies
-	_deps_stack = append(_deps_stack, &entry)
+	_deps_stack = append(_deps_stack, _root)
 
 	return _deps_stack, true
 }
 	
-func cfg_build(_doc *Doc, _entry string) bool{
-	stack, res := cfg_gather_deps(
-		_doc, _entry,
+func cfg_build(_doc *Doc, _key string) bool{
+	dep_stack, res := cfg_gather_deps(
+		_doc, _key,
 		make(map[string]bool, 20),
-		[]*Entry{})
+		[]string{})
 	if !res{ 
 		return false
 	}
 
 	// Build all dependencies
-	for _, entry := range stack{
-		res = cfg_entry_build(_doc, entry)
+	for _, dep_entry := range dep_stack{
+		res = cfg_entry_build(_doc, dep_entry)
 		if !res{
 			return false
 		}

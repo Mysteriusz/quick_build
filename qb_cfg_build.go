@@ -6,11 +6,12 @@ import(
 	"io/fs"
 	"slices"
 	"os"
+	"errors"
 	"os/exec"
 )
 
-func cfg_write_args(_doc *Doc, _entry *Entry, _buf *[]string, _args *[]string, _pref *string, _resolve bool) bool{
-	if _buf == nil || _args == nil || _pref == nil{
+func cfg_write_args(_doc *Doc, _key string, _buf *[]string, _args *[]string, _pref *string, _resolve bool) bool{
+	if _doc == nil || _buf == nil || _args == nil || _pref == nil{
 		ERR("Invalid argument.")
 		return false
 	}
@@ -18,7 +19,7 @@ func cfg_write_args(_doc *Doc, _entry *Entry, _buf *[]string, _args *[]string, _
 	var res bool
 	for _, arg := range *_args{
 		if _resolve{
-			arg, res = cfg_path_resolve(_doc, _entry, arg)
+			arg, res = cfg_path_resolve(_doc, _key, arg)
 			if !res{
 				return false
 			}
@@ -58,15 +59,20 @@ func cfg_write_flags(_doc *Doc, _entry *Entry, _args *[]string) bool{
 	return true
 }*/
 
-func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
+func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bool){
+	if _doc == nil{
+		return nil, false
+	}
+
 	var res bool
+	var entry *Entry = entry_from_key(_doc, _key)
 
 	/*
 		Estimate amount of arguments used to minimize extending the slice
 	*/
-	args_count := len(_entry.CompilerFlags) +
-		len(_entry.Definitions) +
-		len(_entry.LinkHooks) +
+	args_count := len(entry.CompilerFlags) +
+		len(entry.Definitions) +
+		len(entry.LinkHooks) +
 		1 + 	// SRC_PREF
 		2	// OUT_PREF + OUT_PATH
 	args := make([]string, 0, args_count)
@@ -74,15 +80,15 @@ func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
 	/*
 		Write prefixed command arguments
 	*/
-	res = cfg_write_args(_doc, _entry, &args, &_entry.CompilerFlags, &_doc.Compiler.CompilerPrefixGroup.FLG, false)
+	res = cfg_write_args(_doc, _key, &args, &entry.CompilerFlags, &_doc.Compiler.CompilerPrefixGroup.FLG, false)
 	if !res{
 		return nil, false
 	}
-	res = cfg_write_args(_doc, _entry, &args, &_entry.Definitions, &_doc.Compiler.CompilerPrefixGroup.DEF, false)
+	res = cfg_write_args(_doc, _key, &args, &entry.Definitions, &_doc.Compiler.CompilerPrefixGroup.DEF, false)
 	if !res{
 		return nil, false
 	}
-	res = cfg_write_args(_doc, _entry, &args, &_entry.LinkHooks, &_doc.Compiler.CompilerPrefixGroup.INC, true)
+	res = cfg_write_args(_doc, _key, &args, &entry.LinkHooks, &_doc.Compiler.CompilerPrefixGroup.INC, true)
 	if !res{
 		return nil, false
 	}
@@ -103,7 +109,7 @@ func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
 	var compiled []string
 	var out_dir string
 
-	out_dir, res = cfg_path_resolve(_doc, _entry, _entry.BuildDirectory)
+	out_dir, res = cfg_path_resolve(_doc, _key, entry.BuildDirectory)
 	if !res{
 		return nil, false
 	}
@@ -111,7 +117,7 @@ func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
 	/*
 		Start compiling all source files
 	*/
-	filepath.Walk(_entry.BaseDirectory, func(path string, info fs.FileInfo, err error) error{
+	filepath.Walk(entry.BaseDirectory, func(path string, info fs.FileInfo, err error) error{
 		if err != nil{
 			ERR("An error occured.", err)
 			return err
@@ -126,6 +132,23 @@ func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
 			out_dir,
 			info.Name() + _doc.Compiler.SourceOutExtension)
 
+		// Does the compiled file exist
+		_, err = os.Stat(out_path)
+		out_path_exists := err == nil
+
+		// Check if file was updated
+		updated, res := build_version_check_and_update(_doc, _key, _ver, path)
+
+		// No matter the outcome add file to compiled
+		compiled = append(compiled, out_path)
+
+		if !updated && out_path_exists{ // File wasnt updated and is compiled
+			return nil
+		}
+		if !res{
+			return errors.New("")
+		}
+
 		*src_field = path
 		*out_field = out_path
 		println(strings.Join(args, " "))
@@ -138,15 +161,13 @@ func cfg_entry_compile(_doc *Doc, _entry *Entry) ([]string, bool){
 		cmd.Stderr = os.Stderr
 		cmd.Run()
 
-		compiled = append(compiled, out_path)
-
 		return nil
 	})
 
 	return compiled, true
 }
-func cfg_entry_link(_doc *Doc, _entry *Entry, _sources []string) (string, bool){
-	if _doc == nil || _entry == nil || _sources == nil{
+func cfg_entry_process(_doc *Doc, _key string, _sources []string) (string, bool){
+	if _doc == nil ||  _sources == nil{
 		ERR("Invalid arguments.")
 		return "", false
 	}
@@ -154,12 +175,13 @@ func cfg_entry_link(_doc *Doc, _entry *Entry, _sources []string) (string, bool){
 	var res bool
 	var cmd_exec string
 	var cmd_args []string
+	var entry *Entry = entry_from_key(_doc, _key)
 
-	switch _entry.OutputType{
+	switch entry.OutputType{
 	case FILE_EXE:
 	case FILE_LIB:
 		cmd_exec = _doc.Compiler.LibraryCmd
-		cmd_args, res = cfg_lib_cmd(_doc, _entry, _sources)
+		cmd_args, res = cfg_lib_cmd(_doc, _key, _sources)
 		if !res{
 			return "", false
 		}
@@ -178,22 +200,73 @@ func cfg_entry_link(_doc *Doc, _entry *Entry, _sources []string) (string, bool){
 
 	return "", true
 }
-func cfg_entry_build(_doc *Doc, _entry *Entry) bool{
-	if _doc == nil || _entry == nil{
+func cfg_lib_cmd(_doc *Doc, _key string, _sources []string) ([]string, bool){
+	if _doc == nil || _sources == nil{
+		ERR("Invalid arguments.")
+		return nil, false
+	}
+
+	var res bool
+	var entry *Entry = entry_from_key(_doc, _key)
+
+	args_count := len(entry.LibraryFlags) + 
+		len(_sources) * 2 + 	// len(_sources) * (SRC_PREF + SRC_PATH)
+		2			// OUT_PREF + OUT_PATH
+	args := make([]string, 0, args_count)
+
+	// Create the path
+	out_dir, res := cfg_path_resolve(_doc, _key, entry.BuildDirectory)
+	if !res{
+		return nil, false
+	}
+	out_path := filepath.Join(out_dir, entry.OutputBasename)
+
+	args = append(args, _doc.Compiler.LibraryPrefixGroup.OUT)
+	args = append(args, out_path)
+
+	res = cfg_write_args(_doc, _key, &args, &entry.LibraryFlags, &_doc.Compiler.LibraryPrefixGroup.FLG, false)
+	if !res{
+		return nil, false
+	}
+	res = cfg_write_args(_doc, _key, &args, &_sources, &_doc.Compiler.LibraryPrefixGroup.SRC, false)
+	if !res{
+		return nil, false
+	}
+
+	println(strings.Join(args, " "))
+
+	return args, true
+}
+func cfg_entry_build(_doc *Doc, _key string) bool{
+	if _doc == nil{
 		ERR("Invalid arguments.")
 		return false
 	}
 
-	sources, res := cfg_entry_compile(_doc, _entry)
+	var res bool
+	var ver *BuildVersion
+
+	ver, res = build_version_load(_doc, _key)
 	if !res{
 		return false
 	}
 
-	linked, res := cfg_entry_link(_doc, _entry, sources)
+	sources, res := cfg_entry_compile(_doc, _key, ver)
 	if !res{
 		return false
 	}
-	_ = linked
+	_ = sources
+
+	output, res := cfg_entry_process(_doc, _key, sources)
+	if !res{
+		return false
+	}
+	_ = output
+
+	res = build_version_save(_doc, _key, ver)
+	if !res{
+		return false
+	}
 
 	return true
 }
