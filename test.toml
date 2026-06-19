@@ -11,7 +11,8 @@
 #	library_cmd -> Command line executable of the library creator
 #	linker_cmd -> Command line executable of the linker
 #
-#	source_extensions -> File extensions that should be processed
+#	source_extensions -> File extensions that should be compiled
+#	header_extensions -> File extensions that should be linked
 #	source_out_extension -> Compiler source file output extension
 #
 #	[Entries.XX]
@@ -53,6 +54,7 @@ compiler_cmd = "clang" # Executable command of the compiler
 library_cmd = "ar"  # Executable command of the library creator
 
 source_extensions = [".c"]
+header_extensions = [".h"]
 source_out_extension = ".o"
 
 [Entries.ax_utility_lib]

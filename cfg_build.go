@@ -1,63 +1,10 @@
 package main
 
 import(
-	"strings"
-	"path/filepath"
-	"io/fs"
-	"slices"
-	"os"
-	"errors"
-	"os/exec"
+	"qb/qberr"
+	"qb/types"
 )
-
-func cfg_write_args(_doc *Doc, _key string, _buf *[]string, _args *[]string, _pref *string, _resolve bool) bool{
-	if _doc == nil || _buf == nil || _args == nil || _pref == nil{
-		ERR("Invalid argument.")
-		return false
-	}
-
-	var res bool
-	for _, arg := range *_args{
-		if _resolve{
-			arg, res = cfg_path_resolve(_doc, _key, arg)
-			if !res{
-				return false
-			}
-		}
-		*_buf = append(*_buf, *_pref + arg)
-	}
-
-	return true
-}
-
-/*func cfg_write_definitions(_doc *Doc, _entry *Entry, _args *[]string) bool{
-	// Write definitions
-	for _, def := range _entry.Definitions{
-		*_args = append(*_args, _doc.Compiler.CompilePrefixGroup.DEF + def)
-	}
-
-	return true
-}
-func cfg_write_includes(_doc *Doc, _entry *Entry, _args *[]string) bool{
-	// Write include (hook) directories
-	for _, hook := range _entry.LinkHooks{
-		fullpath, res := cfg_path_resolve(_doc, _entry, hook)
-		if !res{
-			return false
-		}
-
-		*_args = append(*_args, _doc.Compiler.CompilePrefixGroup.INC + fullpath)
-	}
-
-	return true
-}
-func cfg_write_flags(_doc *Doc, _entry *Entry, _args *[]string) bool{
-	for _, flag := range _entry.Flags{
-		*_args = append(*_args, _doc.Compiler.CompilePrefixGroup.FLG + flag)
-	}
-
-	return true
-}*/
+/*
 
 func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bool){
 	if _doc == nil{
@@ -67,42 +14,8 @@ func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bo
 	var res bool
 	var entry *Entry = entry_from_key(_doc, _key)
 
-	/*
-		Estimate amount of arguments used to minimize extending the slice
-	*/
-	args_count := len(entry.CompilerFlags) +
-		len(entry.Definitions) +
-		len(entry.LinkHooks) +
-		1 + 	// SRC_PREF
-		2	// OUT_PREF + OUT_PATH
-	args := make([]string, 0, args_count)
 
-	/*
-		Write prefixed command arguments
-	*/
-	res = cfg_write_args(_doc, _key, &args, &entry.CompilerFlags, &_doc.Compiler.CompilerPrefixGroup.FLG, false)
-	if !res{
-		return nil, false
-	}
-	res = cfg_write_args(_doc, _key, &args, &entry.Definitions, &_doc.Compiler.CompilerPrefixGroup.DEF, false)
-	if !res{
-		return nil, false
-	}
-	res = cfg_write_args(_doc, _key, &args, &entry.LinkHooks, &_doc.Compiler.CompilerPrefixGroup.INC, true)
-	if !res{
-		return nil, false
-	}
 
-	args = append(args, _doc.Compiler.CompilerPrefixGroup.SRC)
-	args = append(args, "")
-	args = append(args, _doc.Compiler.CompilerPrefixGroup.OUT)
-	args = append(args, "")
-
-	/*
-		{CMD} \
-			{CompilePrefixGroup.SRC} 	{src_field}
-			{CompilePrefixGroup.OUT} 	{out_field}
-	*/
 	var src_field *string = &args[len(args) - 3]
 	var out_field *string = &args[len(args) - 1]
 
@@ -114,9 +27,6 @@ func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bo
 		return nil, false
 	}
 
-	/*
-		Start compiling all source files
-	*/
 	filepath.Walk(entry.BaseDirectory, func(path string, info fs.FileInfo, err error) error{
 		if err != nil{
 			ERR("An error occured.", err)
@@ -153,9 +63,6 @@ func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bo
 		*out_field = out_path
 		println(strings.Join(args, " "))
 
-		/*
-			Form a command from builders and paths
-		*/
 		cmd := exec.Command(_doc.Compiler.CompilerCmd, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -166,6 +73,7 @@ func cfg_entry_compile(_doc *Doc, _key string, _ver *BuildVersion) ([]string, bo
 
 	return compiled, true
 }
+
 func cfg_entry_process(_doc *Doc, _key string, _sources []string) (string, bool){
 	if _doc == nil ||  _sources == nil{
 		ERR("Invalid arguments.")
@@ -190,9 +98,6 @@ func cfg_entry_process(_doc *Doc, _key string, _sources []string) (string, bool)
 		return "", false
 	}
 
-	/*
-		Form a command from builders and paths
-	*/
 	cmd := exec.Command(cmd_exec, cmd_args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -236,38 +141,86 @@ func cfg_lib_cmd(_doc *Doc, _key string, _sources []string) ([]string, bool){
 	println(strings.Join(args, " "))
 
 	return args, true
-}
-func cfg_entry_build(_doc *Doc, _key string) bool{
+}*/
+
+func cfg_entry_build(_doc *types.Doc, _key string) bool{
 	if _doc == nil{
-		ERR("Invalid arguments.")
+		qberr.ERR("Invalid arguments.")
 		return false
 	}
 
 	var res bool
-	var ver *BuildVersion
+	var builder *types.EntryBuilder
 
-	ver, res = build_version_load(_doc, _key)
+	builder, res = types.CreateEntryBuilder(_doc, _key)
 	if !res{
 		return false
 	}
 
-	sources, res := cfg_entry_compile(_doc, _key, ver)
-	if !res{
-		return false
-	}
-	_ = sources
+	builder.Compile()
+	builder.Process()
+	builder.Finish()
 
-	output, res := cfg_entry_process(_doc, _key, sources)
-	if !res{
-		return false
-	}
-	_ = output
+	return true
+}
 
-	res = build_version_save(_doc, _key, ver)
-	if !res{
-		return false
+// Create a stack of entries to build
+func GatherConfigDeps(_doc *types.Doc, _root string, _deps map[string]bool, _deps_stack []string) ([]string, bool){
+	if _doc == nil{
+		qberr.ERR("Invalid Document.")
+		return nil, false
 	}
 
+	entry := _doc.FromKey(_root)
+
+	if _deps[_root]{ // Dependency already exists
+		qberr.ERR("Dependencies are nested.")
+		return nil, false
+	}
+
+	_deps[_root] = true
+
+	// End recursion
+	if len(entry.Dependencies) == 0{
+		goto end
+	}
+
+	// Validate dependencies for this entry
+	for _, dep_name := range entry.Dependencies{
+		temp, res := GatherConfigDeps(_doc, dep_name, _deps, _deps_stack)
+		if !res{
+			return nil, false
+		}
+		_deps_stack = temp
+	}
+end:
+
+	// Add this entry after processing all entry depenedencies
+	_deps_stack = append(_deps_stack, _root)
+
+	return _deps_stack, true
+}
+
+func BuildWithDeps(_doc *types.Doc, _key string) bool{
+	dep_stack, res := GatherConfigDeps(
+		_doc, _key,
+		make(map[string]bool, 20),
+		[]string{})
+	if !res{ 
+		return false
+	}
+
+	// Build all dependencies
+	for _, dep_entry := range dep_stack{
+		res = cfg_entry_build(_doc, dep_entry)
+		if !res{
+			return false
+		}
+	}
+
+	return true
+}
+func BuildNoDeps(_doc *types.Doc, _key string) bool{
 	return true
 }
 
