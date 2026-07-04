@@ -1,0 +1,8 @@
+[Policies]
+
+[Policies.MyCompile]
+function = "Compile"
+
+[Policies.MyLink]
+function = "Link"
+

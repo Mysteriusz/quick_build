@@ -1,0 +1,7 @@
+[Policies]
+
+[Policies.MyLib]
+mode = "rcs"
+output_ext = ".lib"
+output_name = "ax_utility_lib"
+

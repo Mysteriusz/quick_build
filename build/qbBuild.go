@@ -1,0 +1,136 @@
+package build
+
+import(
+	"path/filepath"
+	"io/fs"
+	"fmt"
+
+	. "qb/io"
+	. "qb/configs"
+)
+
+type QB_BuildState struct{
+	Config 			*QB_ConfigEntry
+	WorkingSet		[]QB_Object
+	source_files 		QB_FileArray
+	header_files 		QB_FileArray
+	pipe_idx		QB_PipeIdx // Currently processed pipe index
+}
+
+func QBInitBuild(_cfg *QB_ConfigEntry) (state QB_BuildState, res bool){
+	if _cfg == nil{
+		return
+	}
+
+	state.Config = _cfg
+	return state, true
+}
+
+func (_state *QB_BuildState) NextPipe() {
+	_state.pipe_idx++
+}
+func (_state *QB_BuildState) CurrentPipeIndex() QB_PipeIdx{
+	return _state.pipe_idx
+}
+func (_state *QB_BuildState) CurrentPipe() *QB_PipeEntry{
+	return &_state.Config.Pipeline[_state.pipe_idx]
+}
+func (_state *QB_BuildState) PipeCount() uint8{
+	return uint8(len(_state.Config.Pipeline))
+}
+func (_state *QB_BuildState) ClearWorkingSet(){
+	_state.WorkingSet = nil
+}
+func (_state *QB_BuildState) LoadWorkingSet(_objects []QB_Object){
+	_state.WorkingSet = _objects
+
+}
+
+func gather_file_type(_base string, _ext string) (buf []QB_File, res bool){
+	buf = make([]QB_File, 0)
+	err := filepath.WalkDir(_base, func(path string, d fs.DirEntry, err error) error{
+		file := QBInitFile(path)
+		if filepath.Ext(path) != _ext{
+			return nil
+		}
+		buf = append(buf, file)
+
+		return nil
+	})
+	if err != nil{
+		fmt.Println("Unknown error.")
+		return
+	}
+
+	return buf, true
+}
+func (_state *QB_BuildState) GetSources() QB_FileArray{
+	if _state.source_files != nil{
+		return _state.source_files
+	}
+	sources, res := gather_file_type(_state.Config.SourceDirectory, ".c")
+	if !res{
+		fmt.Println("Failed to gather source files.")
+		panic("Assertion failed!!!")
+	}
+
+	_state.source_files = sources
+	return sources
+}
+func (_state *QB_BuildState) GetHeaders() QB_FileArray{
+	if _state.header_files != nil{
+		return _state.header_files
+	}
+	headers, res := gather_file_type(_state.Config.SourceDirectory, ".h")
+	if !res{
+		fmt.Println("Failed to gather header files.")
+		panic("Assertion failed!!!")
+	}
+
+	_state.header_files = headers
+	return headers
+}
+
+type QB_IterFunction func(_state *QB_BuildState, _data any)(res bool)
+
+func (_state *QB_BuildState) IterPipes(_func QB_IterFunction, _data any) (res bool){
+
+	// Preserve the original pipe index
+	org_idx := _state.CurrentPipeIndex()
+
+	/*
+		Iterate over all pipes
+	*/
+	for ; _state.CurrentPipeIndex() < _state.PipeCount(); _state.NextPipe(){
+		if !_func(_state, _data){
+			return
+		}
+	}
+
+	_state.pipe_idx = org_idx
+
+	return true
+}
+func (_state *QB_BuildState) IterPipesIdx(_from_idx QB_PipeIdx, _to_idx QB_PipeIdx,
+	_func QB_IterFunction, _data any,
+) (res bool){
+
+	// Preserve the original pipe index
+	org_idx := _state.CurrentPipeIndex()
+
+	/*
+		Iterate over the pipe range
+	*/
+	for idx := QB_PipeIdx(0); _from_idx < _to_idx; idx++{
+		_state.pipe_idx = idx
+		if !_func(_state, _data){
+			return
+		}
+	}
+
+	// Go back to the original pipe index
+	_state.pipe_idx = org_idx
+
+	return true
+}
+
