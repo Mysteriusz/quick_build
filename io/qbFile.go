@@ -1,6 +1,11 @@
 package io
 
 import(
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+
+	"io"
 	"os"
 	"fmt"
 	"path"
@@ -14,10 +19,38 @@ import(
 	Make the fullpath be validated whenever you acquire the file
 	and if 'QB_File.FullPath' reload the 'QB_File.file' field!!!
 	(Use a private prev_fullpath field or something) 
+
+	JSON representation example:
+        {
+          "fullpath": "path//to//my//file",
+          "hash": "3f90c0d3ad1c7fcfeba79b2ae4c600e6610a8874e6d4656355ecbbb2dcc03bed"
+        }
 */
 type QB_File struct{
-	FullPath 	string
+	FullPath 	string 		`json:"fullpath"`
+	Hash		string 		`json:"hash"`
 	file		*os.File
+}
+func (_file *QB_File) ComputeHash() string{
+	if _file.Hash != ""{
+		return _file.Hash
+	}
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, _file.GetFile()); err != nil{
+		return ""
+	}
+
+	_file.Hash = hex.EncodeToString(hash.Sum(nil))
+	return _file.Hash
+}
+
+func (_file QB_File) MarshalJSON() ([]byte, error){
+	type alias QB_File
+	return json.Marshal(alias{
+		FullPath: _file.FullPath,
+		Hash: _file.ComputeHash(),
+	})
 }
 
 func QBInitFile(_path string) (qb_file QB_File){
@@ -109,5 +142,12 @@ func (_farray QB_FileArray) AllPaths() []string{
 	return Select[QB_File, string](
 		_farray,
 		"FullPath")
+}
+func (_farray QB_FileArray) AllHashes() []string{
+	buf := make([]string, len(_farray))
+	for _,file := range _farray{
+		buf = append(buf, file.ComputeHash())
+	}
+	return buf
 }
 

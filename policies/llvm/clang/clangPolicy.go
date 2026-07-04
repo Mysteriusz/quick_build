@@ -56,14 +56,18 @@ func (_policy *Clang_Policy) RunVersionControl(_state *QB_BuildState) (not_updat
 	if found && log != nil{
 		println("Found entry")
 		println(log.Hash)
-	}else{
-		VCNewPipeLog(_state, &vc_file)
-	}
 
-	// Write back any changes to he version control file
-	vc_file.Save()
-	
-	return true
+		// Return as not updated
+		vc_file.Save()
+
+		return true
+	}else{
+		// Create a version control pipe log and return as updated
+		VCNewPipeLog(_state, &vc_file)
+		vc_file.Save()
+
+		return false
+	}
 }
 
 func (_policy *Clang_Policy) GetFile() *QB_File{

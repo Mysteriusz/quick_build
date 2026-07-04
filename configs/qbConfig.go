@@ -4,9 +4,6 @@ import(
 	"fmt"
 	"path/filepath"
 	
-	"crypto/sha256"
-	"encoding/hex"
-	
 	"github.com/pelletier/go-toml/v2"
 
 	. "qb/io"
@@ -14,22 +11,12 @@ import(
 
 type QB_PipeIdx = uint8
 type QB_PipeEntry struct{
-	Command 		string	 `toml:"command"`
-	CommandPolicyAlias 	string	 `toml:"command_policy_alias"`
-	CommandPolicyName 	string	 `toml:"command_policy_name"`
-	Flags 			[]string	 `toml:"flags"`
-	Definitions 		[]string	 `toml:"definitions"`
-	Hooks 			[]string	 `toml:"hooks"`
-}
-func (_pipe *QB_PipeEntry) ComputeHash() string{
-	hash := sha256.New()
-	data, err := toml.Marshal(_pipe)
-	if err != nil{
-		return ""
-	}
-
-	hash.Write(data)
-	return hex.EncodeToString(hash.Sum(nil))
+	Command 		string	 	`toml:"command"`
+	CommandPolicyAlias 	string	 	`toml:"command_policy_alias"`
+	CommandPolicyName 	string	 	`toml:"command_policy_name"`
+	Flags 			[]string	`toml:"flags"`
+	Definitions 		[]string	`toml:"definitions"`
+	Hooks 			[]string	`toml:"hooks"`
 }
 
 type QB_ConfigEntry struct{
