@@ -42,7 +42,7 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 	return true
 }
 
-func (_policy *Clang_Policy) RunVersionControl(_state *QB_BuildState) (not_updated bool){
+func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_updated bool, vc_state VC_FileState){
 	if _state == nil{
 		return
 	}
@@ -50,24 +50,22 @@ func (_policy *Clang_Policy) RunVersionControl(_state *QB_BuildState) (not_updat
 		return
 	}
 
-	vc_file := VCFindOrCreateFile(_state)
-	found, log := VCSearchPipeLog(_state, &vc_file)
+	// Load/Create version control objects required
+	not_updated, vc_state = VCFindOrCreateState(_state)
+	not_missing := VCMissingCheck(_state, &vc_state)
 
-	if found && log != nil{
-		println("Found entry")
-		println(log.Hash)
-
-		// Return as not updated
-		vc_file.Save()
-
-		return true
-	}else{
-		// Create a version control pipe log and return as updated
-		VCNewPipeLog(_state, &vc_file)
-		vc_file.Save()
-
-		return false
+	return not_updated && not_missing, vc_state
+}
+func (_policy *Clang_Policy) EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState){
+	if _state == nil{
+		return
 	}
+	
+	// Set the output set as the current working set
+	_vc_state.Pipe().OutWorkingSet = _state.WorkingSet
+
+	// Save to file
+	_vc_state.File.Save()
 }
 
 func (_policy *Clang_Policy) GetFile() *QB_File{

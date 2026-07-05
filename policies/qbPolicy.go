@@ -3,6 +3,7 @@ package policies
 import(
 	. "qb/io"
 	. "qb/build"
+	. "qb/policies/version_control"
 )
 
 type QB_Capabilities struct{
@@ -23,16 +24,29 @@ type QB_PolicyInfo interface{
 	*/
 	Run(_state *QB_BuildState) bool
 	/*
-		Execute policy defined version control check
-		on the build state object
+		Begin policy defined version check 
+		transaction on the build state object
 
 		The function should but isn`t required to check
 		for Version control capability of it`s policy info
 
 		IMPORTANT!
-		This requires 'GetCapabilities' to return an object
+		This should require 'GetCapabilities' to return an object
+		with field 'QB_Capabilities.VersionControl' == true
+
+		Eles the not_updated value should always be 0 (false)
+	*/
+	BeginVersionControl(_state *QB_BuildState) (not_updated bool, _vc_state VC_FileState)
+	/*
+		Finish and save the version check transaction
+
+		The function should but isn`t required to check
+		for Version control capability of it`s policy info
+
+		IMPORTANT!
+		This should require 'GetCapabilities' to return an object
 		with field 'QB_Capabilities.VersionControl' == true
 	*/
-	RunVersionControl(_state *QB_BuildState) (not_updated bool)
+	EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState)
 }
 

@@ -6,6 +6,7 @@ import(
 
 	"github.com/pelletier/go-toml/v2"
 
+	. "qb/policies/version_control"
 	. "qb/policies"
 	. "qb/build"
 	. "qb/io"
@@ -39,13 +40,17 @@ func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
 
 	return true
 }
-func (_policy *Ar_Policy) RunVersionControl(_state *QB_BuildState) (not_updated bool){
+
+func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_updated bool, vc_state VC_FileState){
 	if _state == nil{
 		return
 	}
-
-
-	return false
+	return
+}
+func (_policy *Ar_Policy) EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState){
+	if _state == nil || _vc_state == nil{
+		return
+	}
 }
 
 func (_policy *Ar_Policy) GetFile() *QB_File{
