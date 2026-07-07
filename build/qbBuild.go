@@ -4,6 +4,7 @@ import(
 	"path/filepath"
 	"io/fs"
 	"fmt"
+	"os"
 
 	. "qb/io"
 	. "qb/configs"
@@ -29,7 +30,7 @@ func QBInitBuild(_cfg *QB_ConfigEntry) (state QB_BuildState, res bool){
 func (_state *QB_BuildState) NextPipe() {
 	_state.pipe_idx++
 }
-func (_state *QB_BuildState) CurrentPipeIndex() QB_PipeIdx{
+func (_state *QB_BuildState) CurrentPipeIdx() QB_PipeIdx{
 	return _state.pipe_idx
 }
 func (_state *QB_BuildState) CurrentPipe() *QB_PipeEntry{
@@ -49,6 +50,11 @@ func (_state *QB_BuildState) LoadWorkingSet(_objects []QB_Object){
 func gather_file_type(_base string, _ext string) (buf []QB_File, res bool){
 	buf = make([]QB_File, 0)
 	err := filepath.WalkDir(_base, func(path string, d fs.DirEntry, err error) error{
+		info, err := os.Stat(path)
+		if err != nil || info.IsDir(){
+			return nil
+		}
+		
 		file := QBInitFile(path)
 		if filepath.Ext(path) != _ext{
 			return nil
@@ -96,12 +102,12 @@ type QB_IterFunction func(_state *QB_BuildState, _data any)(res bool)
 func (_state *QB_BuildState) IterPipes(_func QB_IterFunction, _data any) (res bool){
 
 	// Preserve the original pipe index
-	org_idx := _state.CurrentPipeIndex()
+	org_idx := _state.CurrentPipeIdx()
 
 	/*
 		Iterate over all pipes
 	*/
-	for ; _state.CurrentPipeIndex() < _state.PipeCount(); _state.NextPipe(){
+	for ; _state.CurrentPipeIdx() < _state.PipeCount(); _state.NextPipe(){
 		if !_func(_state, _data){
 			return
 		}
@@ -116,7 +122,7 @@ func (_state *QB_BuildState) IterPipesIdx(_from_idx QB_PipeIdx, _to_idx QB_PipeI
 ) (res bool){
 
 	// Preserve the original pipe index
-	org_idx := _state.CurrentPipeIndex()
+	org_idx := _state.CurrentPipeIdx()
 
 	/*
 		Iterate over the pipe range

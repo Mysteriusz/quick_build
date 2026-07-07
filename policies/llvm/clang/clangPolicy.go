@@ -6,6 +6,7 @@ import(
 
 	"github.com/pelletier/go-toml/v2"
 
+	"qb/misc"
 	. "qb/policies/version_control"
 	. "qb/policies"
 	. "qb/build"
@@ -51,18 +52,35 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 	}
 
 	// Load/Create version control objects required
-	not_updated, vc_state = VCFindOrCreateState(_state)
-	not_missing := VCMissingCheck(_state, &vc_state)
+	not_first_build, vc_state := VCFindOrCreateState(_state)
+	no_diff := VCDiff(_state, &vc_state)
 
-	return not_updated && not_missing, vc_state
+	println(not_first_build)
+	println(no_diff)
+
+	println("==================================SRC DIFF==================================")
+	misc.PrintArray(vc_state.DiffSources.AllPaths())
+	println("==================================HDR DIFF==================================")
+	misc.PrintArray(vc_state.DiffHeaders.AllPaths())
+
+	// Update diff source files for clang 
+	//src_diff := ClangVCDiff(&vc_state)
+
+	println("==================================CLANG SRC DIFF==================================")
+	//misc.PrintArray(src_diff.AllPaths())
+
+	return not_first_build && no_diff, vc_state
 }
-func (_policy *Clang_Policy) EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState){
-	if _state == nil{
+func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+	if _qb_state == nil{
 		return
 	}
 	
 	// Set the output set as the current working set
-	_vc_state.Pipe().OutWorkingSet = _state.WorkingSet
+	_vc_state.Pipe().OutWorkingSet = _qb_state.WorkingSet
+	_vc_state.Pipe().SourceFiles = _qb_state.GetSources()
+	_vc_state.Pipe().HeaderFiles = _qb_state.GetHeaders()
+	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
 
 	// Save to file
 	_vc_state.File.Save()

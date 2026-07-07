@@ -67,6 +67,8 @@ func ClangCompileFromState(_state *QB_BuildState) (_out_objects []QB_Object, res
 	args := make([]string, 1)
 	args[0] = pipe.Command
 
+	args = append(args, "-MMD")
+
 	// Write all Flags
 	args = append(args,
 		ClangWriteArgs("-", pipe.Flags)...

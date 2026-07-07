@@ -14,7 +14,7 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 	*/
 	pipe := _state.CurrentPipe()
 	if pipe == nil{
-		fmt.Println("Unable to get pipe at index: %i", _state.CurrentPipeIndex())
+		fmt.Println("Unable to get pipe at index: %i", _state.CurrentPipeIdx())
 		return
 	}
 

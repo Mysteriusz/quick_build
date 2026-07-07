@@ -27,13 +27,14 @@ import(
         }
 */
 type QB_File struct{
-	FullPath 	string 		`json:"fullpath"`
-	Hash		string 		`json:"hash"`
+	FullPath 	string 
+	hash		string
 	file		*os.File
 }
+
 func (_file *QB_File) ComputeHash() string{
-	if _file.Hash != ""{
-		return _file.Hash
+	if _file.hash != ""{
+		return _file.hash
 	}
 
 	hash := sha256.New()
@@ -41,21 +42,40 @@ func (_file *QB_File) ComputeHash() string{
 		return ""
 	}
 
-	_file.Hash = hex.EncodeToString(hash.Sum(nil))
-	return _file.Hash
+	_file.hash = hex.EncodeToString(hash.Sum(nil))
+	return _file.hash
 }
 
 func (_file QB_File) MarshalJSON() ([]byte, error){
 	type alias QB_File
-	return json.Marshal(alias{
+	return json.Marshal(struct{
+		FullPath string `json:"fullpath"`
+		Hash string `json:"hash"`
+	}{
 		FullPath: _file.FullPath,
 		Hash: _file.ComputeHash(),
 	})
+}
+func (f *QB_File) UnmarshalJSON(data []byte) error {
+ 	var raw struct {
+		FullPath string `json:"fullpath"`
+        	Hash     string `json:"hash"`
+	}
+
+	if err := json.Unmarshal(data, &raw); err != nil{
+		return err
+	}
+
+	f.FullPath = raw.FullPath
+	f.hash = raw.Hash
+
+	return nil
 }
 
 func QBInitFile(_path string) (qb_file QB_File){
 	qb_file.FullPath = _path
 	qb_file.file = nil
+	qb_file.ComputeHash()
 
 	return qb_file
 }
@@ -135,6 +155,9 @@ func ChangeDirectory(_path string, _dir string) string{
 
 	return filepath.Join(_dir, no_dir)
 }
+func ComparePath(_p1 string, _p2 string) bool{
+	return filepath.Clean(_p1) == filepath.Clean(_p2)
+}
 
 type QB_FileArray []QB_File
 
@@ -149,5 +172,48 @@ func (_farray QB_FileArray) AllHashes() []string{
 		buf = append(buf, file.ComputeHash())
 	}
 	return buf
+}
+func (_farray QB_FileArray) AllInvalid() (invalid []QB_File){
+	for _,file := range _farray{
+		if !file.IsValid(){
+			invalid = append(invalid, file)
+		}
+	}
+	return
+}
+
+func QBFileArrayUnion(_a ...QB_FileArray) (array QB_FileArray){
+	seen := make(map[string]bool)
+	for _, slice := range _a{
+		for _, e := range slice{
+			if _, res := seen[e.FullPath]; res{
+				continue
+			}
+                	seen[e.FullPath] = true
+			array = append(array, e)
+		}
+	}
+
+	return array
+}
+func QBFileArrayIntersect(_a ...QB_FileArray) (array QB_FileArray){
+	count := make(map[string]uint32)
+	files := make(map[string]QB_File)
+	for _, slice := range _a{
+		for _, e := range slice{
+			if count[e.FullPath] == 0{
+				files[e.FullPath] = e
+			}
+			count[e.FullPath]++
+		}
+	}
+
+	for k, v := range count{
+		if v == uint32(len(_a)){
+			array = append(array, files[k])
+		}
+	}
+
+	return array
 }
 

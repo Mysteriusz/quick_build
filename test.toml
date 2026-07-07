@@ -1,7 +1,7 @@
 # Entry index 0
 [[Entry]]
 
-name = "ax_utility_lib-COMPILE"
+name = "ax_utility_lib"
 source_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src"
 output_directory = "D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/WIN_UM/"
 

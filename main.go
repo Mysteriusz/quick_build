@@ -4,6 +4,7 @@ import(
 	. "qb/configs"
 	. "qb/build"
 	. "qb/build/runner"
+	//"qb/misc"
 )
 
 func main(){
@@ -16,6 +17,8 @@ func main(){
 		return
 	}
 	ExecuteFromState(&state)
+
+	//misc.PrintArray(misc.Union([]string{"a", "b", "c"}, []string{"c", "b", "d"}))
 }
 
 
