@@ -149,21 +149,18 @@ func VCIntersectFiles(_f1 QB_FileArray, _f2 QB_FileArray) (intersect QB_FileArra
 	s2 := make(map[string]bool)
 	for _, e := range _f1{
 		if !s1[e.FullPath]{
-			if count[e.FullPath] == 0{
-				files[e.FullPath] = e
-			}
+			files[e.FullPath] = e
 			count[e.FullPath]++
 			s1[e.FullPath] = true
 		}
 	}
 	for _, e := range _f2{
 		if !s2[e.FullPath]{
-			if count[e.FullPath] == 0{
-				files[e.FullPath] = e
+			f, r := files[e.FullPath]
+			if !r{
+				continue
 			}
-			count[e.FullPath]++
 
-			f := files[e.FullPath]
 			if f.ComputeHash() == e.ComputeHash(){
 				count[e.FullPath]++
 			}

@@ -27,6 +27,9 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		return
 	}
 
+	// Start execution timer
+	start := time.Now()
+
 	/*
 		Version control variables
 	*/
@@ -46,16 +49,12 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 				Load the working set with expected output
 			*/
 			_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
-			return true
+			goto timer_end
 		}
 	}
 	
-	start := time.Now()
 
 	policy.Run(_state)
-
-	end := time.Now()
-	fmt.Println("Policity execution took: ", end.Sub(start))
 
 	/*
 		Save the version control state
@@ -66,6 +65,11 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 
 	fmt.Println("Working set entries: ", len(_state.WorkingSet))
 	//fmt.Println("Working set entry 0: ", _state.WorkingSet[0].Data)
+
+	// End execution timer
+timer_end:
+	end := time.Now()
+	fmt.Println("Policity execution took: ", end.Sub(start))
 
 	return true
 }

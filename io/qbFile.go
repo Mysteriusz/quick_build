@@ -32,7 +32,7 @@ type QB_File struct{
 	file		*os.File
 }
 
-func (_file *QB_File) ComputeHash() string{
+func (_file QB_File) ComputeHash() string{
 	if _file.hash != ""{
 		return _file.hash
 	}
@@ -73,7 +73,7 @@ func (f *QB_File) UnmarshalJSON(data []byte) error {
 }
 
 func QBInitFile(_path string) (qb_file QB_File){
-	qb_file.FullPath = _path
+	qb_file.FullPath = NormalizePath(_path)
 	qb_file.file = nil
 	qb_file.ComputeHash()
 
@@ -89,7 +89,7 @@ func (_file QB_File) GetFile() *os.File{
 	// Else open the file
 	os_file, err := os.OpenFile(_file.FullPath, os.O_RDWR | os.O_CREATE, 0644)
 	if err != nil{
-		fmt.Printf("Failed to open: %s\n", _file.FullPath)
+		fmt.Printf("Failed to open:\n %s\n", _file.FullPath)
 		panic("Assertion failed!!!")
 	}
 
@@ -157,6 +157,17 @@ func ChangeDirectory(_path string, _dir string) string{
 }
 func ComparePath(_p1 string, _p2 string) bool{
 	return filepath.Clean(_p1) == filepath.Clean(_p2)
+}
+func NormalizePath(_path string) string{
+	abs, err := filepath.Abs(_path)
+	if err != nil{
+		return _path
+	}
+
+	abs = filepath.Clean(abs)
+	abs = filepath.FromSlash(abs)
+
+	return abs
 }
 
 type QB_FileArray []QB_File

@@ -13,7 +13,8 @@ import(
 	. "qb/io"
 )
 
-const CLANG_EXTRA_FIELD_DEP string = "dependency_path"
+const CLANG_OUT_DEP string = "dependency_file"
+const CLANG_OUT_SRC string = "source_file"
 
 type Clang_Policy struct{
 	/*

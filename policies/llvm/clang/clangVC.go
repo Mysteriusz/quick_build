@@ -1,10 +1,11 @@
 package policies
 
 import(
-	//"fmt"
+	"fmt"
 	"bufio"
 	"strings"
 
+	"qb/misc"
 	. "qb/policies/vc"
 	. "qb/io"
 	. "qb/build"
@@ -29,12 +30,40 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 			continue
 		}
 
-		_, v := obj.GetExtra(CLANG_EXTRA_FIELD_DEP)
-		println(v.(string))
-		_ = obj
+		_,dep := QBGetObjectExtra[QB_File](&obj, CLANG_OUT_DEP)
+		_,src := QBGetObjectExtra[QB_File](&obj, CLANG_OUT_SRC)
+
+		/*
+			Validate the dependency file
+		*/
+		if !dep.IsValid() || !(dep.ComputeHash() == QBInitFile(dep.FullPath).ComputeHash()){
+			fmt.Printf("Dependency file changed:\n %s\n", dep.FullPath)
+			src_diff = append(src_diff, src)
+			continue
+		}
+
+		/*
+			Parse the dependency file
+		*/
+		res, file := ClangVCParseD(dep)
+		if !res{
+			fmt.Printf("Unable to parse the dependency file:\n %s\n", dep.FullPath)
+			src_diff = append(src_diff, src)
+			continue
+		}
+
+		/*
+			Intersect headers from the dependency file and gathered by the 'VC_FileState'
+			If any are matched that means the file has to be re-compiled
+		*/
+		shared_diffs := misc.Intersect(file.deps.AllPaths(), _vc_state.DiffHeaders.AllPaths())
+		if len(shared_diffs) != 0{
+			src_diff = append(src_diff, src)
+			continue
+		}
 	}
 
-	return
+	return src_diff
 }
 
 /*

@@ -25,6 +25,10 @@ type QB_Object struct{
 	/*
 		Allows for storage of additional data
 		that isn`t as rooted as Data
+
+		IMPORTANT!!!
+		Extra should never be validated/used in any way by the generic qb handlers
+		and should be used with caution
 	*/
 	extra	map[string]json.RawMessage
 }
@@ -44,7 +48,7 @@ func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
 	return obj, true
 }
 
-func (_obj *QB_Object) GetExtra(_slot string) (res bool, data any){
+func QBGetObjectExtra[T any](_obj *QB_Object, _slot string) (res bool, data T){
 	raw, res := _obj.extra[_slot]
 
 	if err := json.Unmarshal(raw, &data); err != nil{
@@ -53,7 +57,7 @@ func (_obj *QB_Object) GetExtra(_slot string) (res bool, data any){
 
 	return res, data
 }
-func (_obj *QB_Object) SetExtra(_slot string, _data any) (res bool){
+func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
 	val, err := json.Marshal(_data)
 	if err != nil{
 		return
