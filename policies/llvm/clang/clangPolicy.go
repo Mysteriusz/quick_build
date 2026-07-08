@@ -7,11 +7,13 @@ import(
 	"github.com/pelletier/go-toml/v2"
 
 	"qb/misc"
-	. "qb/policies/version_control"
+	. "qb/policies/vc"
 	. "qb/policies"
 	. "qb/build"
 	. "qb/io"
 )
+
+const CLANG_EXTRA_FIELD_DEP string = "dependency_path"
 
 type Clang_Policy struct{
 	/*
@@ -64,10 +66,10 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 	misc.PrintArray(vc_state.DiffHeaders.AllPaths())
 
 	// Update diff source files for clang 
-	//src_diff := ClangVCDiff(&vc_state)
+	src_diff := ClangVCDiff(_state, &vc_state)
 
 	println("==================================CLANG SRC DIFF==================================")
-	//misc.PrintArray(src_diff.AllPaths())
+	misc.PrintArray(src_diff.AllPaths())
 
 	return not_first_build && no_diff, vc_state
 }

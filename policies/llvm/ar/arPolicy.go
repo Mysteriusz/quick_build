@@ -6,7 +6,7 @@ import(
 
 	"github.com/pelletier/go-toml/v2"
 
-	. "qb/policies/version_control"
+	. "qb/policies/vc"
 	. "qb/policies"
 	. "qb/build"
 	. "qb/io"

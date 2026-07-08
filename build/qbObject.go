@@ -22,6 +22,11 @@ const(
 type QB_Object struct{
 	Type 	QB_ObjectType 	`json:"type"`
 	Data	any		`json:"data"`
+	/*
+		Allows for storage of additional data
+		that isn`t as rooted as Data
+	*/
+	extra	map[string]json.RawMessage
 }
 
 func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
@@ -34,19 +39,52 @@ func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
 		return
 	}
 
+	obj.extra = make(map[string]json.RawMessage)
 	obj.Type = _type
 	return obj, true
 }
 
+func (_obj *QB_Object) GetExtra(_slot string) (res bool, data any){
+	raw, res := _obj.extra[_slot]
+
+	if err := json.Unmarshal(raw, &data); err != nil{
+		return 
+	}
+
+	return res, data
+}
+func (_obj *QB_Object) SetExtra(_slot string, _data any) (res bool){
+	val, err := json.Marshal(_data)
+	if err != nil{
+		return
+	}
+
+	_obj.extra[_slot] = val
+	return true
+}
+
+func (_obj *QB_Object) MarshalJSON() ([]byte, error){
+	return json.Marshal(&struct {
+        	Type QB_ObjectType 	`json:"type"`
+        	Data any 		`json:"data"`
+        	Extra map[string]json.RawMessage `json:"extra,omitempty"`
+	}{
+		Type: _obj.Type,
+		Data: _obj.Data,
+		Extra: _obj.extra,
+	})
+}
 func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
     	var raw struct {
         	Type QB_ObjectType  `json:"type"`
         	Data json.RawMessage `json:"data"`
+        	Extra map[string]json.RawMessage `json:"extra,omitempty"`
     	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	_obj.Type = raw.Type
+	_obj.extra = raw.Extra
 
 	switch _obj.Type{
 	case TYPE_FILE:
@@ -60,6 +98,7 @@ func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
 	}
 	return nil
 }
+
 func (_obj *QB_Object) Exists() bool{
 	switch _obj.Type{
 	case TYPE_FILE:

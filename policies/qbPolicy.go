@@ -3,7 +3,7 @@ package policies
 import(
 	. "qb/io"
 	. "qb/build"
-	. "qb/policies/version_control"
+	. "qb/policies/vc"
 )
 
 type QB_Capabilities struct{

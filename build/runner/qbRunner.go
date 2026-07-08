@@ -2,10 +2,11 @@ package runner
 
 import(
 	"fmt"
+	"time"
 
 	. "qb/build"
 	. "qb/policies/map"
-	. "qb/policies/version_control"
+	. "qb/policies/vc"
 )
 
 func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
@@ -49,7 +50,12 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		}
 	}
 	
+	start := time.Now()
+
 	policy.Run(_state)
+
+	end := time.Now()
+	fmt.Println("Policity execution took: ", end.Sub(start))
 
 	/*
 		Save the version control state
