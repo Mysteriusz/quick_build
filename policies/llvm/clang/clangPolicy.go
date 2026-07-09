@@ -69,8 +69,8 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
 	*/
 	if not_first_build{
-		//src_diff = ClangVCDiff(_state, &vc_state)
-		//vc_state.DiffSources = src_diff
+		src_diff = ClangVCDiff(_state, &vc_state)
+		vc_state.DiffSources = src_diff
 	}
 
 	println("==================================HDR DIFF==================================")
@@ -206,6 +206,7 @@ func ClangInitPolicyFile(_policy *Clang_Policy) (cfg Clang_PolicyFile, res bool)
 		fmt.Printf("Failed to decode: %s\n", file.FullPath)
 		return
 	}
+	defer file.Save()
 
 	return cfg, true
 }

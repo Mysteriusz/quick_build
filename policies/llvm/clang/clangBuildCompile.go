@@ -40,16 +40,16 @@ func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res boo
 	/*
 		Command execution loop for every source file
 	*/
-	for _,src := range _state.GetSources(){
+	for _,src := range _state.GetSources().AllPaths(){
 		// Resolve output path for the current state
 		output_obj := ChangeDirectory(
-			ChangeExtension(src.FullPath, ".o"),
+			ChangeExtension(src, ".o"),
 			_state.Config.OutputDirectory)
 
 		output_dep := ChangeExtension(output_obj, ".d")
 
 		// Attach input
-		cmd.SetInput([]string{"-c", src.FullPath})
+		cmd.SetInput([]string{"-c", src})
 		
 		// Attach output
 		cmd.SetOutput([]string{"-o", output_obj})
@@ -72,10 +72,11 @@ func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res boo
 		if !QBSetObjectExtra(&obj, CLANG_OUT_DEP, QBInitFile(output_dep)){
 			fmt.Printf("Failed to write dependency file to object: %s", output_dep)
 		}
-		if !QBSetObjectExtra(&obj, CLANG_OUT_SRC, src){
-			fmt.Printf("Failed to write source file to object: %s", src.FullPath)
+		if !QBSetObjectExtra(&obj, CLANG_OUT_SRC, QBInitFile(src)){
+			fmt.Printf("Failed to write source file to object: %s", src)
 		}
 
+		println(src)
 		out_set.Update(obj)
 	}
 

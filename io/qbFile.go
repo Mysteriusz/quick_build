@@ -32,7 +32,12 @@ type QB_File struct{
 	file		*os.File
 }
 
-func (_file QB_File) ComputeHash() string{
+func (_file *QB_File) InvalidateHash() bool{
+	temp := QBInitFile(_file.FullPath)
+	return _file.ComputeHash() == temp.ComputeHash()
+}
+	
+func (_file *QB_File) ComputeHash() string{
 	if _file.hash != ""{
 		return _file.hash
 	}
@@ -41,9 +46,10 @@ func (_file QB_File) ComputeHash() string{
 	if _, err := io.Copy(hash, _file.GetFile()); err != nil{
 		return ""
 	}
-	_file.Save()
 
 	_file.hash = hex.EncodeToString(hash.Sum(nil))
+	_file.Save()
+
 	return _file.hash
 }
 
@@ -80,7 +86,7 @@ func QBInitFile(_path string) (qb_file QB_File){
 	return qb_file
 }
 
-func (_file QB_File) GetFile() *os.File{
+func (_file *QB_File) GetFile() *os.File{
 	// If already opened just pass the file
 	if _file.file != nil{
 		return _file.file
@@ -98,7 +104,7 @@ func (_file QB_File) GetFile() *os.File{
 }
 
 /*
-	Create/Close the file and save
+	Create/Close the file
 */
 func (_file QB_File) Save() (res bool){
 	// State where the file exists but isn`t open

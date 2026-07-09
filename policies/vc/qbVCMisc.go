@@ -76,28 +76,6 @@ func VCPipeUniqueId(_state *QB_BuildState) string{
 }
 
 /*
-	Gather all changed objects to 'VC_FileState' object
-*/
-func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
-	if _qb_state == nil || _vc_state == nil{
-		return
-	}
-
-	d1 := VCDiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
-	_vc_state.DiffSources = d1
-
-	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
-	_vc_state.DiffHeaders = d2
-
-	/*
-		TODO:
-		Add input and output set validation via hash
-	*/
-
-	return len(d1) == 0 && len(d2) == 0
-}
-
-/*
 	Check and return what files differ
 */
 func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff QB_FileArray){

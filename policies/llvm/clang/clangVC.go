@@ -33,11 +33,11 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 		obj := val.Data.(QB_FileObject).File
 		_,dep := QBGetObjectExtra[QB_File](&val, CLANG_OUT_DEP)
 		_,src := QBGetObjectExtra[QB_File](&val, CLANG_OUT_SRC)
-
+		
 		/*
 			Validate the Dependency file
 		*/
-		if !dep.IsValid() || !(dep.ComputeHash() == QBInitFile(dep.FullPath).ComputeHash()){
+		if !dep.IsValid() || !dep.InvalidateHash(){
 			fmt.Printf("Dependency file changed:\n %s\n", dep.FullPath)
 			src_diff = append(src_diff, src)
 			continue
@@ -46,7 +46,7 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 		/*
 			Validate the Object file
 		*/
-		if !obj.IsValid() || !(obj.ComputeHash() == QBInitFile(obj.FullPath).ComputeHash()){
+		if !obj.IsValid() || !obj.InvalidateHash(){
 			fmt.Printf("Object file changed:\n %s\n", obj.FullPath)
 			src_diff = append(src_diff, src)
 			continue
@@ -55,8 +55,8 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 		/*
 			Validate the Source file
 		*/
-		if !src.IsValid() || !(src.ComputeHash() == QBInitFile(src.FullPath).ComputeHash()){
-			fmt.Printf("Object file changed:\n %s\n", src.FullPath)
+		if !src.IsValid() || !src.InvalidateHash(){
+			fmt.Printf("Source file changed:\n %s\n", src.FullPath)
 			src_diff = append(src_diff, src)
 			continue
 		}
@@ -97,6 +97,7 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 const CLANG_VC_D_TRIM = "\x09\x20\x5c\x3a"
 func ClangVCParseD(_file QB_File) (res bool, dep ClangVC_D){
 	scanner := bufio.NewScanner(_file.GetFile())
+	defer _file.Save()
 
 	/*
 		Read the object file

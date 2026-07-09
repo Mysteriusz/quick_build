@@ -61,6 +61,8 @@ func (_file *VC_FileState)Pipe() *VC_PipeStructure{
 }
 
 func (_vc_file *VC_File) Save() (res bool){
+	defer  _vc_file.QB_File.Save()
+
 	/*
 		Update version file metadata
 	*/
@@ -79,8 +81,6 @@ func (_vc_file *VC_File) Save() (res bool){
 		fmt.Println("Error message:\n", err)
 		return
 	}
-
-	_vc_file.QB_File.Save()
 
 	return true
 }
@@ -106,9 +106,6 @@ func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state 
 	}
 
 	qb_file := QBInitFile(ChangeDirectory(VC_FILE_NAME, _state.Config.OutputDirectory))
-	if !qb_file.Save(){
-		return
-	}
 
 	// Create the version control file object 
 	vc_file := VC_File{
@@ -118,13 +115,8 @@ func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state 
 
 	err := json.NewDecoder(qb_file.GetFile()).Decode(&vc_file.Structure)
 
-	// Means the file is empty and the initial header is to be written
-	if errors.Is(err, io.EOF){
-		vc_file.Save()
-		err = json.NewDecoder(qb_file.GetFile()).Decode(&vc_file.Structure)
-	}
-
-	if err != nil{
+	// EOF means the file is empty and the initial header is to be written
+	if err != nil && !errors.Is(err, io.EOF){
 		fmt.Printf("Failed to decode/create the version control file:\n %s\n", qb_file.FullPath)
 		fmt.Println("Error message:\n", err)
 		return
@@ -135,6 +127,30 @@ func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state 
 		File: vc_file,
 		PipeIdx: pipe_idx,
 	}
+}
+
+/*
+	Gather all changed objects to 'VC_FileState' object
+*/
+func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
+	if _qb_state == nil || _vc_state == nil{
+		return
+	}
+
+	d1 := VCDiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
+	_vc_state.DiffSources = d1
+
+	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
+	_vc_state.DiffHeaders = d2
+
+	d3 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
+
+	/*
+		TODO:
+		Add input and output set validation via hash
+	*/
+
+	return len(d1) == 0 && len(d2) == 0 && d3
 }
 
 /*
