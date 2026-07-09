@@ -5,7 +5,7 @@ import(
 	. "qb/build"
 )
 
-func ClangLinkFromState(_state *QB_BuildState) (_out_objects []QB_Object, res bool){
+func ClangLinkFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res bool){
 	if _state == nil{
 		return
 	}
@@ -17,7 +17,7 @@ func ClangLinkFromState(_state *QB_BuildState) (_out_objects []QB_Object, res bo
 	if len(pipe.Hooks) == 0{
 		// All files are included directly
 		args = append(args,
-			ClangWriteArgs("-I", _state.GetHeaders().AllPaths())...
+			ClangWriteArgs("-I", _state.GatherAllHeaders().AllPaths())...
 		)
 	}else{
 		// Write only provided hooks
@@ -48,6 +48,6 @@ func ClangLinkFromState(_state *QB_BuildState) (_out_objects []QB_Object, res bo
 	_ = inputs
 
 	// TODO
-	return []QB_Object{}, true
+	return nil, true
 }
 

@@ -48,26 +48,7 @@ func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
 	return obj, true
 }
 
-func QBGetObjectExtra[T any](_obj *QB_Object, _slot string) (res bool, data T){
-	raw, res := _obj.extra[_slot]
-
-	if err := json.Unmarshal(raw, &data); err != nil{
-		return 
-	}
-
-	return res, data
-}
-func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
-	val, err := json.Marshal(_data)
-	if err != nil{
-		return
-	}
-
-	_obj.extra[_slot] = val
-	return true
-}
-
-func (_obj *QB_Object) MarshalJSON() ([]byte, error){
+func (_obj QB_Object) MarshalJSON() ([]byte, error){
 	return json.Marshal(&struct {
         	Type QB_ObjectType 	`json:"type"`
         	Data any 		`json:"data"`
@@ -103,6 +84,25 @@ func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
 	return nil
 }
 
+func QBGetObjectExtra[T any](_obj *QB_Object, _slot string) (res bool, data T){
+	raw, res := _obj.extra[_slot]
+
+	if err := json.Unmarshal(raw, &data); err != nil{
+		return 
+	}
+
+	return res, data
+}
+func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
+	val, err := json.Marshal(_data)
+	if err != nil{
+		return
+	}
+
+	_obj.extra[_slot] = val
+	return true
+}
+
 func (_obj *QB_Object) Exists() bool{
 	switch _obj.Type{
 	case TYPE_FILE:
@@ -117,6 +117,24 @@ func (_obj *QB_Object) String() string{
 		return _obj.Data.(QB_FileObject).File.FullPath
 	default:
 		return ""
+	}
+}
+
+type QB_ObjectSet map[string]QB_Object
+func (_set *QB_ObjectSet) Update(_obj QB_Object) QB_ObjectSet{
+	if *_set == nil{
+		*_set = make(QB_ObjectSet)
+	}
+	(*_set)[_obj.String()] = _obj
+	return *_set
+}
+func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
+	if *_set == nil{
+		*_set = make(QB_ObjectSet)
+	}
+
+	for _, v := range _objs{
+		_set.Update(v)
 	}
 }
 

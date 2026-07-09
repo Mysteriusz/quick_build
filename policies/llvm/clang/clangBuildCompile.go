@@ -7,7 +7,7 @@ import(
 	. "qb/build"
 )
 
-func ClangCompileFromState(_state *QB_BuildState) (_out_objects []QB_Object, res bool){
+func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res bool){
 	if _state == nil{
 		return
 	}
@@ -36,8 +36,6 @@ func ClangCompileFromState(_state *QB_BuildState) (_out_objects []QB_Object, res
 	)
 
 	cmd := QBInitCommand(args, 0, 0)
-
-	objects := make([]QB_Object, 0)
 
 	/*
 		Command execution loop for every source file
@@ -78,9 +76,8 @@ func ClangCompileFromState(_state *QB_BuildState) (_out_objects []QB_Object, res
 			fmt.Printf("Failed to write source file to object: %s", src.FullPath)
 		}
 
-		// Append to _state.WorkingSet
-		objects = append(objects, obj)
+		out_set.Update(obj)
 	}
 
-	return objects, true
+	return out_set, true
 }

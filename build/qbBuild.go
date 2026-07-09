@@ -10,12 +10,23 @@ import(
 	. "qb/configs"
 )
 
+type QB_FileGetFunc func()(QB_FileArray)
 type QB_BuildState struct{
-	Config 			*QB_ConfigEntry
-	WorkingSet		[]QB_Object
-	source_files 		QB_FileArray
-	header_files 		QB_FileArray
-	pipe_idx		QB_PipeIdx // Currently processed pipe index
+	Config 		*QB_ConfigEntry
+	WorkingSet	QB_ObjectSet
+	GetSources	QB_FileGetFunc
+	GetHeaders	QB_FileGetFunc
+	source_files 	QB_FileArray
+	header_files 	QB_FileArray
+	pipe_idx	QB_PipeIdx // Currently processed pipe index
+}
+
+/*
+	Restores overridable functions back to default 
+*/
+func (_state *QB_BuildState) Restore(){
+	_state.GetSources = _state.GatherAllSources
+	_state.GetHeaders = _state.GatherAllHeaders
 }
 
 func QBInitBuild(_cfg *QB_ConfigEntry) (state QB_BuildState, res bool){
@@ -23,28 +34,59 @@ func QBInitBuild(_cfg *QB_ConfigEntry) (state QB_BuildState, res bool){
 		return
 	}
 
+	state.Restore()
+
 	state.Config = _cfg
 	return state, true
 }
 
+func (_state *QB_BuildState) PipeCount() uint8{
+	return uint8(len(_state.Config.Pipeline))
+}
 func (_state *QB_BuildState) NextPipe() {
+	_state.Restore()
 	_state.pipe_idx++
+}
+
+func (_state *QB_BuildState) CurrentPipe() *QB_PipeEntry{
+	return &_state.Config.Pipeline[_state.pipe_idx]
 }
 func (_state *QB_BuildState) CurrentPipeIdx() QB_PipeIdx{
 	return _state.pipe_idx
 }
-func (_state *QB_BuildState) CurrentPipe() *QB_PipeEntry{
-	return &_state.Config.Pipeline[_state.pipe_idx]
-}
-func (_state *QB_BuildState) PipeCount() uint8{
-	return uint8(len(_state.Config.Pipeline))
+
+func (_state *QB_BuildState) LoadWorkingSet(_objects QB_ObjectSet){
+	_state.WorkingSet = _objects
 }
 func (_state *QB_BuildState) ClearWorkingSet(){
 	_state.WorkingSet = nil
 }
-func (_state *QB_BuildState) LoadWorkingSet(_objects []QB_Object){
-	_state.WorkingSet = _objects
 
+func (_state *QB_BuildState) GatherAllSources() QB_FileArray{
+	if _state.source_files != nil{
+		return _state.source_files
+	}
+	sources, res := gather_file_type(_state.Config.SourceDirectory, ".c")
+	if !res{
+		fmt.Println("Failed to gather source files.")
+		panic("Assertion failed!!!")
+	}
+
+	_state.source_files = sources
+	return sources
+}
+func (_state *QB_BuildState) GatherAllHeaders() QB_FileArray{
+	if _state.header_files != nil{
+		return _state.header_files
+	}
+	headers, res := gather_file_type(_state.Config.SourceDirectory, ".h")
+	if !res{
+		fmt.Println("Failed to gather header files.")
+		panic("Assertion failed!!!")
+	}
+
+	_state.header_files = headers
+	return headers
 }
 
 func gather_file_type(_base string, _ext string) (buf []QB_File, res bool){
@@ -69,32 +111,6 @@ func gather_file_type(_base string, _ext string) (buf []QB_File, res bool){
 	}
 
 	return buf, true
-}
-func (_state *QB_BuildState) GetSources() QB_FileArray{
-	if _state.source_files != nil{
-		return _state.source_files
-	}
-	sources, res := gather_file_type(_state.Config.SourceDirectory, ".c")
-	if !res{
-		fmt.Println("Failed to gather source files.")
-		panic("Assertion failed!!!")
-	}
-
-	_state.source_files = sources
-	return sources
-}
-func (_state *QB_BuildState) GetHeaders() QB_FileArray{
-	if _state.header_files != nil{
-		return _state.header_files
-	}
-	headers, res := gather_file_type(_state.Config.SourceDirectory, ".h")
-	if !res{
-		fmt.Println("Failed to gather header files.")
-		panic("Assertion failed!!!")
-	}
-
-	_state.header_files = headers
-	return headers
 }
 
 type QB_IterFunction func(_state *QB_BuildState, _data any)(res bool)

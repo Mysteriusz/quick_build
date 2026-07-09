@@ -33,7 +33,7 @@ func ArRunFromState(_policy *Ar_Policy, _state *QB_BuildState) (res bool){
 	return cfg.Execute(_state)
 }
 
-func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (_out_objects []QB_Object, res bool){
+func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set QB_ObjectSet, res bool){
 	if _cfg == nil || _state == nil{
 		return
 	}
@@ -81,8 +81,8 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (_out_obje
 	output_obj, res := QBInitObject(output, TYPE_FILE)
 	if !res{
 		return
-	}
+	}	
 
-	return []QB_Object{output_obj}, true
+	return out_set.Update(output_obj), true
 }
 

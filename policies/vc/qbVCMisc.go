@@ -40,11 +40,11 @@ func VCStateUniqueHash(_state *QB_BuildState) string{
 		io.WriteString(hash, str)
 	}
 
-	for _, str := range _state.GetHeaders().AllHashes() {
+	for _, str := range _state.GatherAllHeaders().AllHashes() {
 		io.WriteString(hash, str)
 	}
 	
-	for _, str := range _state.GetSources().AllHashes() {
+	for _, str := range _state.GatherAllSources().AllHashes() {
 		io.WriteString(hash, str)
 	}
 
@@ -83,11 +83,16 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
 		return
 	}
 
-	d1 := VCDiffFiles(_qb_state.GetSources(), _vc_state.Pipe().SourceFiles)
+	d1 := VCDiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
 	_vc_state.DiffSources = d1
 
-	d2 := VCDiffFiles(_qb_state.GetHeaders(), _vc_state.Pipe().HeaderFiles)
+	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
 	_vc_state.DiffHeaders = d2
+
+	/*
+		TODO:
+		Add input and output set validation via hash
+	*/
 
 	return len(d1) == 0 && len(d2) == 0
 }
@@ -106,23 +111,24 @@ func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff QB_FileArray){
 	s2 := make(map[string]bool)
 	for _, e := range _f1{
 		if !s1[e.FullPath]{
-			if count[e.FullPath] == 0{
-				files[e.FullPath] = e
-			}
+			files[e.FullPath] = e
 			count[e.FullPath]++
 			s1[e.FullPath] = true
 		}
 	}
 	for _, e := range _f2{
 		if !s2[e.FullPath]{
-			if count[e.FullPath] == 0{
+			f, r := files[e.FullPath]
+			if !r{
+				// Didn`t exist in the '_f1' array
 				files[e.FullPath] = e
+				count[e.FullPath] = 1
+				continue
 			}
 
 			/*
 				Compare hashes to determine file content change
 			*/
-			f := files[e.FullPath]
 			if f.ComputeHash() == e.ComputeHash(){
 				count[e.FullPath]++
 			}

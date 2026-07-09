@@ -26,8 +26,8 @@ type VC_PipeStructure struct{
 	*/
 	StateHash 	string 		`json:"state_hash"`
 	TimeStamp 	string 		`json:"timestamp"`
-	InWorkingSet 	[]QB_Object 	`json:"input_working_set"`
-	OutWorkingSet 	[]QB_Object 	`json:"output_working_set"`
+	InWorkingSet 	QB_ObjectSet 	`json:"input_working_set"`
+	OutWorkingSet 	QB_ObjectSet 	`json:"output_working_set"`
 	SourceFiles	QB_FileArray	`json:"source_files"`
 	HeaderFiles	QB_FileArray	`json:"header_files"`
 }
@@ -86,6 +86,17 @@ func (_vc_file *VC_File) Save() (res bool){
 }
 
 /*
+	Link the following values to the 'VC_FileState'
+		1) QB_BuildState.GetSources -> VC_FileState.DiffSources
+		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders
+*/
+func VCLinkState(_vc_state *VC_FileState, _qb_state *QB_BuildState){
+	_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders}
+	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
+	_qb_state.WorkingSet = _vc_state.Pipe().InWorkingSet
+}
+
+/*
 	Find/Create the version control file,
 	and initialize the version control state object
 */
@@ -138,10 +149,10 @@ func VCNewPipeLog(_state *QB_BuildState, _vc_file *VC_File) (res bool, pipe_idx 
 		Id: VCPipeUniqueId(_state),
 		StateHash: "",
 		TimeStamp: VCTimeToFormat(time.Now()),
-		InWorkingSet: nil,
-		OutWorkingSet: nil,
-		HeaderFiles: _state.GetHeaders(),
-		SourceFiles: _state.GetSources(),
+		InWorkingSet: make(QB_ObjectSet),
+		OutWorkingSet: make(QB_ObjectSet),
+		HeaderFiles: make(QB_FileArray, 0),
+		SourceFiles: make(QB_FileArray, 0),
 	}
 
 	pipes := &_vc_file.Structure.Pipes

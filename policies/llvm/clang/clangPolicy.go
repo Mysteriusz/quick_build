@@ -54,35 +54,45 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 		return
 	}
 
+	/*
+	*/
+
 	// Load/Create version control objects required
 	not_first_build, vc_state := VCFindOrCreateState(_state)
 	no_diff := VCDiff(_state, &vc_state)
 
-	println(not_first_build)
-	println(no_diff)
+	src_diff := make(QB_FileArray, 0)
+	/*
+		CLANG EXCLUSIVE
 
-	println("==================================SRC DIFF==================================")
-	misc.PrintArray(vc_state.DiffSources.AllPaths())
+		Update diff source files for clang 
+		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
+	*/
+	if not_first_build{
+		//src_diff = ClangVCDiff(_state, &vc_state)
+		//vc_state.DiffSources = src_diff
+	}
+
 	println("==================================HDR DIFF==================================")
 	misc.PrintArray(vc_state.DiffHeaders.AllPaths())
+	println("==================================SRC DIFF==================================")
+	misc.PrintArray(vc_state.DiffSources.AllPaths())
 
-	// Update diff source files for clang 
-	src_diff := ClangVCDiff(_state, &vc_state)
-
-	println("==================================CLANG SRC DIFF==================================")
-	misc.PrintArray(src_diff.AllPaths())
-
-	return not_first_build && no_diff, vc_state
+	return not_first_build && no_diff && len(src_diff) == 0, vc_state
 }
 func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	if _qb_state == nil{
 		return
 	}
 	
-	// Set the output set as the current working set
-	_vc_state.Pipe().OutWorkingSet = _qb_state.WorkingSet
-	_vc_state.Pipe().SourceFiles = _qb_state.GetSources()
-	_vc_state.Pipe().HeaderFiles = _qb_state.GetHeaders()
+	/*
+		Merge both sets so that output working set of the 
+		version control has his objects updated
+	*/
+	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
+
+	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
+	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
 	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
 
 	// Save to file
@@ -164,13 +174,13 @@ OUTPUT:
 
 */
 	case "Link":	
-		objects, res := ClangLinkFromState(_state)
+		out_set, res := ClangLinkFromState(_state)
 		if !res{
 			return false
 		}
 
 		_state.ClearWorkingSet()
-		_state.LoadWorkingSet(objects)
+		_state.LoadWorkingSet(out_set)
 
 		return true
 	}

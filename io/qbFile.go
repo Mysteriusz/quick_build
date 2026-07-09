@@ -41,6 +41,7 @@ func (_file QB_File) ComputeHash() string{
 	if _, err := io.Copy(hash, _file.GetFile()); err != nil{
 		return ""
 	}
+	_file.Save()
 
 	_file.hash = hex.EncodeToString(hash.Sum(nil))
 	return _file.hash
@@ -75,7 +76,6 @@ func (f *QB_File) UnmarshalJSON(data []byte) error {
 func QBInitFile(_path string) (qb_file QB_File){
 	qb_file.FullPath = NormalizePath(_path)
 	qb_file.file = nil
-	qb_file.ComputeHash()
 
 	return qb_file
 }
@@ -109,6 +109,8 @@ func (_file QB_File) Save() (res bool){
 	// State where the file exists and is open
 	if _file.file != nil{
 		err := _file.file.Close()
+		_file.file = nil
+
 		if err != nil{
 			fmt.Printf("Unable to save file:\n %s\n", _file.FullPath)
 			return
@@ -116,6 +118,8 @@ func (_file QB_File) Save() (res bool){
 	}else{
 		// State where the doesn`t exist
 		os_file,err := os.Create(_file.FullPath)
+		_file.file = nil
+
 		if err != nil{
 			fmt.Printf("Unable to save file:\n %s\n", _file.FullPath)
 			return

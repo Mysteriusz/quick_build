@@ -25,19 +25,38 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 		return
 	}
 
-	for _, obj := range _vc_state.Pipe().OutWorkingSet{
-		if obj.Type != TYPE_FILE{
+	for _, val := range _vc_state.Pipe().OutWorkingSet{
+		if val.Type != TYPE_FILE{
 			continue
 		}
 
-		_,dep := QBGetObjectExtra[QB_File](&obj, CLANG_OUT_DEP)
-		_,src := QBGetObjectExtra[QB_File](&obj, CLANG_OUT_SRC)
+		obj := val.Data.(QB_FileObject).File
+		_,dep := QBGetObjectExtra[QB_File](&val, CLANG_OUT_DEP)
+		_,src := QBGetObjectExtra[QB_File](&val, CLANG_OUT_SRC)
 
 		/*
-			Validate the dependency file
+			Validate the Dependency file
 		*/
 		if !dep.IsValid() || !(dep.ComputeHash() == QBInitFile(dep.FullPath).ComputeHash()){
 			fmt.Printf("Dependency file changed:\n %s\n", dep.FullPath)
+			src_diff = append(src_diff, src)
+			continue
+		}
+
+		/*
+			Validate the Object file
+		*/
+		if !obj.IsValid() || !(obj.ComputeHash() == QBInitFile(obj.FullPath).ComputeHash()){
+			fmt.Printf("Object file changed:\n %s\n", obj.FullPath)
+			src_diff = append(src_diff, src)
+			continue
+		}
+
+		/*
+			Validate the Source file
+		*/
+		if !src.IsValid() || !(src.ComputeHash() == QBInitFile(src.FullPath).ComputeHash()){
+			fmt.Printf("Object file changed:\n %s\n", src.FullPath)
 			src_diff = append(src_diff, src)
 			continue
 		}

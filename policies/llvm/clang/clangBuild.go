@@ -30,7 +30,11 @@ func ClangRunFromState(_policy *Clang_Policy, _state *QB_BuildState) (res bool){
 			policy_name)
 		return
 	}
-	cfg.Execute(_state)
+
+	res = cfg.Execute(_state)
+	if !res{
+		return
+	}
 
 	return true
 }

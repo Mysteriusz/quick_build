@@ -45,12 +45,10 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		not_updated, vc_state = policy.BeginVersionControl(_state)
 		if not_updated{
 			vc_state.File.Save()
-			/*
-				Load the working set with expected output
-			*/
-			_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
 			goto timer_end
 		}
+
+		VCLinkState(&vc_state, _state)
 	}
 	
 
@@ -70,6 +68,13 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 timer_end:
 	end := time.Now()
 	fmt.Println("Policity execution took: ", end.Sub(start))
+
+	/*
+		Load the working set with expected output
+	*/
+	if vc_enabled{
+		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
+	}
 
 	return true
 }
