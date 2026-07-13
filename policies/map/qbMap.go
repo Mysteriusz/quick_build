@@ -18,7 +18,7 @@ var LLVM_POLICY_INFO_LOOKUP map[string]QB_PolicyInfo = map[string]QB_PolicyInfo{
 	"llvm-ar": &Ar_Policy{
 		PATH: "./policies/llvm/ar.toml",
 		CAPS: QB_Capabilities{
-			VersionControl: false,
+			VersionControl: true,
 		},
 	},
 }

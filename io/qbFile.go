@@ -106,7 +106,7 @@ func (_file *QB_File) GetFile() *os.File{
 /*
 	Create/Close the file
 */
-func (_file QB_File) Save() (res bool){
+func (_file *QB_File) Save() (res bool){
 	// State where the file exists but isn`t open
 	if _file.IsValid() && _file.file == nil{
 		return true
@@ -134,6 +134,11 @@ func (_file QB_File) Save() (res bool){
 	}
 
 	return true
+}
+func (_file *QB_File) Clear(){
+	_file.GetFile()
+	_file.file.Truncate(0)
+	_file.file.Seek(0, 0)
 }
 func (_file QB_File) IsValid() (res bool){
 	stat, err := os.Lstat(_file.FullPath)
@@ -202,6 +207,7 @@ func (_farray QB_FileArray) AllInvalid() (invalid []QB_File){
 	}
 	return
 }
+
 
 func QBFileArrayUnion(_a ...QB_FileArray) (array QB_FileArray){
 	seen := make(map[string]bool)

@@ -26,12 +26,6 @@ func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
 	if _state == nil{
 		return false
 	}
-	fmt.Println("==================================")
-	fmt.Println("CLANG POLICY INFO")
-	fmt.Println("Policy file path: ", _policy.GetFile().FullPath)
-	fmt.Println("Policy file alias: ", _state.CurrentPipe().CommandPolicyAlias)
-	fmt.Println("Policy name: ", _state.CurrentPipe().CommandPolicyName)
-	fmt.Println("==================================")
 
 	res = ArRunFromState(_policy, _state)
 	if !res{
@@ -41,16 +35,50 @@ func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
 	return true
 }
 
-func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_updated bool, vc_state VC_FileState){
+func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
 	if _state == nil{
 		return
 	}
-	return
-}
-func (_policy *Ar_Policy) EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState){
-	if _state == nil || _vc_state == nil{
+	if !_policy.GetCapabilities().VersionControl{
 		return
 	}
+
+	/*
+		Load/Create version control object
+		and load it`s diff
+	*/
+	not_first_build, vc_state = VCFindOrCreateState(_state)
+
+	/*
+		AR EXCLUSIVE
+
+		Ar ignores source/header diffs
+		and only calculates diff for input/output objects
+	*/
+	in_diff := vc_state.DiffInput
+	out_diff := vc_state.DiffOutput
+	if not_first_build{
+		in_diff = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
+		vc_state.DiffInput = in_diff
+
+		out_diff = ArVCDiff(_state, &vc_state)
+		vc_state.DiffOutput = out_diff
+	}
+	no_hash_diff := (VCStateUniqueHash(_state) == vc_state.Pipe().StateHash)
+
+	println(len(in_diff))
+	println(len(out_diff))
+	return not_first_build, no_hash_diff && len(in_diff) == 0 && len(out_diff) == 0, vc_state
+}
+func (_policy *Ar_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+	if _qb_state == nil || _vc_state == nil{
+		return
+	}
+
+	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
+
+	// Save to file
+	_vc_state.File.Save()
 }
 
 func (_policy *Ar_Policy) GetFile() *QB_File{
@@ -95,7 +123,7 @@ func (_cfg *Ar_PolicyConfig)Execute(_state *QB_BuildState) (res bool){
 	Execute archive creation only for the QB_BuildState object`s
 
 INPUT:
-	_state.WorkingSet types: TYPE_FILE
+	_state.WorkingSet with types: TYPE_FILE
 	_cfg.Mode
 	_cfg.OutputExt
 	_cfg.OutputName

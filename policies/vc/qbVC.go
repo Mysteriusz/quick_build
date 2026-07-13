@@ -11,6 +11,34 @@ import(
 	. "qb/build"
 )
 
+type VC_PolicyInt interface{
+	/*
+		Begin policy defined version check 
+		transaction on the build state object
+
+		The function should but isn`t required to check
+		for Version control capability of it`s policy info
+
+		IMPORTANT!
+		This should require 'GetCapabilities' to return an object
+		with field 'QB_Capabilities.VersionControl' == true
+
+		Eles the not_updated value should always be 0 (false)
+	*/
+	BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, _vc_state VC_FileState)
+	/*
+		Finish and save the version check transaction
+
+		The function should but isn`t required to check
+		for Version control capability of it`s policy info
+
+		IMPORTANT!
+		This should require 'GetCapabilities' to return an object
+		with field 'QB_Capabilities.VersionControl' == true
+	*/
+	EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState)
+}
+
 var VC_TIME_FORMAT string = "15:04:05 PM MST January 02/2006"
 var VC_FILE_NAME string = "VERSION_CONTROL.JSON"
 
@@ -51,8 +79,8 @@ func (_file *VC_File)PipeFromIdx(_idx VC_PipeIdx) *VC_PipeStructure{
 type VC_FileState struct{
 	File		VC_File
 	PipeIdx		VC_PipeIdx
-	InMissing	[]QB_Object
-	OutMissing	[]QB_Object
+	DiffInput	QB_ObjectSet
+	DiffOutput	QB_ObjectSet
 	DiffSources 	QB_FileArray
 	DiffHeaders	QB_FileArray
 }
@@ -61,7 +89,9 @@ func (_file *VC_FileState)Pipe() *VC_PipeStructure{
 }
 
 func (_vc_file *VC_File) Save() (res bool){
-	defer  _vc_file.QB_File.Save()
+	defer _vc_file.QB_File.Save()
+
+	_vc_file.Clear()
 
 	/*
 		Update version file metadata
@@ -90,10 +120,16 @@ func (_vc_file *VC_File) Save() (res bool){
 		1) QB_BuildState.GetSources -> VC_FileState.DiffSources
 		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders
 */
-func VCLinkState(_vc_state *VC_FileState, _qb_state *QB_BuildState){
+func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders}
 	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
-	_qb_state.WorkingSet = _vc_state.Pipe().InWorkingSet
+}
+
+func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
+	_vc_state.Pipe().InWorkingSet.Merge(_qb_state.WorkingSet)
+}
+func (_vc_state *VC_FileState)SetOutputWorkingSet(_qb_state *QB_BuildState){
+	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
 }
 
 /*
@@ -137,20 +173,32 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
 		return
 	}
 
+	// Source files diff
 	d1 := VCDiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
 	_vc_state.DiffSources = d1
 
+	// Header files diff
 	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
 	_vc_state.DiffHeaders = d2
 
-	d3 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
+	// Objects diff
+	d3 := VCDiffObjects(_qb_state.WorkingSet, _vc_state.Pipe().InWorkingSet)
+	_vc_state.DiffInput = d3
+
+	// Unique hash diff
+	d4 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
+
+	println(len(d1))
+	println(len(d2))
+	println(len(d3))
+	println(d4)
 
 	/*
 		TODO:
 		Add input and output set validation via hash
 	*/
 
-	return len(d1) == 0 && len(d2) == 0 && d3
+	return len(d1) == 0 && len(d2) == 0 && len(d3) == 0 && d4
 }
 
 /*
@@ -186,10 +234,7 @@ func VCLoadPipeLog(_state *QB_BuildState, _vc_file *VC_File) (found bool, pipe_i
 	}
 
 	/*
-		TODO:
-		Hash only verifies if ANYTHING changed,
-		that doesn`t include builds where a single file changed,
-		which should just update the file entry (There should be something that identifies the pipe, maybe a name?)
+		Find pipe by unique state based ID
 	*/
 	id := VCPipeUniqueId(_state)
 	for idx, pipe := range _vc_file.Structure.Pipes{
@@ -197,14 +242,6 @@ func VCLoadPipeLog(_state *QB_BuildState, _vc_file *VC_File) (found bool, pipe_i
 			return true, uint32(idx)
 		}
 	}
-	/*hash := VCStateUniqueHash(_state)
-	for idx, pipe := range _vc_file.Structure.Pipes{
-		// Return if found pipe by state hash
-		if pipe.Hash == hash{
-			return true, uint32(idx)
-		}
-	}*/
-
 
 	res, idx := VCNewPipeLog(_state, _vc_file)
 	if !res{

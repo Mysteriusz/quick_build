@@ -42,26 +42,4 @@ hooks = [
 command = "ar" 				# The main exection command
 command_policy_alias = "llvm-ar" 	# The known toolchain specific execution policy alias
 command_policy_name = "MyLib" 		# Toolchain policy name
-#
-# 	Usage of these properties may differ depending on
-#	the policy file and name and their implementations
-#
-flags = [
-	"m64",
-	"Wno-deprecated-declarations",
-	"std=c23",
-	"mavx2",
-	"mbmi2",
-]
-definitions = [
-	"AX_UM",
-	"AX_WIN64",
-]
-hooks = [
-	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/",
-	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext",
-	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io",
-	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/data",
-	"C:/msys64/ucrt64/include",
-]
 

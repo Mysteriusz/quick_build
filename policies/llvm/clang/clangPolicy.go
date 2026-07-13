@@ -31,13 +31,6 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 		return false
 	}
 
-	fmt.Println("==================================")
-	fmt.Println("CLANG POLICY INFO")
-	fmt.Println("Policy file path: ", _policy.GetFile().FullPath)
-	fmt.Println("Policy file alias: ", _state.CurrentPipe().CommandPolicyAlias)
-	fmt.Println("Policy name: ", _state.CurrentPipe().CommandPolicyName)
-	fmt.Println("==================================")
-
 	res = ClangRunFromState(_policy, _state)
 	if !res{
 		return
@@ -46,7 +39,7 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 	return true
 }
 
-func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_updated bool, vc_state VC_FileState){
+func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
 	if _state == nil{
 		return
 	}
@@ -55,13 +48,15 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 	}
 
 	/*
+		Load/Create version control object
+		and load it`s diff
 	*/
-
-	// Load/Create version control objects required
-	not_first_build, vc_state := VCFindOrCreateState(_state)
+	not_first_build, vc_state = VCFindOrCreateState(_state)
 	no_diff := VCDiff(_state, &vc_state)
 
-	src_diff := make(QB_FileArray, 0)
+	hdr_diff := vc_state.DiffHeaders
+	src_diff := vc_state.DiffSources
+
 	/*
 		CLANG EXCLUSIVE
 
@@ -73,12 +68,16 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_upd
 		vc_state.DiffSources = src_diff
 	}
 
-	println("==================================HDR DIFF==================================")
-	misc.PrintArray(vc_state.DiffHeaders.AllPaths())
-	println("==================================SRC DIFF==================================")
-	misc.PrintArray(vc_state.DiffSources.AllPaths())
+	if len(hdr_diff) > 0{
+		println("==================================HDR DIFF==================================")
+		misc.PrintArray(hdr_diff.AllPaths())
+	}
+	if len(src_diff) > 0{
+		println("==================================SRC DIFF==================================")
+		misc.PrintArray(src_diff.AllPaths())
+	}
 
-	return not_first_build && no_diff && len(src_diff) == 0, vc_state
+	return not_first_build, no_diff && len(src_diff) == 0, vc_state
 }
 func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	if _qb_state == nil{
@@ -89,7 +88,7 @@ func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_sta
 		Merge both sets so that output working set of the 
 		version control has his objects updated
 	*/
-	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
+	//_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
 
 	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
 	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()

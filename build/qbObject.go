@@ -31,6 +31,7 @@ type QB_Object struct{
 		and should be used with caution
 	*/
 	extra	map[string]json.RawMessage
+	hash	string
 }
 
 func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
@@ -106,7 +107,8 @@ func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
 func (_obj *QB_Object) Exists() bool{
 	switch _obj.Type{
 	case TYPE_FILE:
-		return _obj.Data.(QB_FileObject).File.IsValid()
+		file := _obj.Data.(QB_FileObject).File
+		return file.IsValid() && file.InvalidateHash()
 	default:
 		return false
 	}
@@ -119,14 +121,57 @@ func (_obj *QB_Object) String() string{
 		return ""
 	}
 }
+func(_obj *QB_Object) ComputeHash() string{
+	if _obj.hash != ""{
+		return _obj.hash
+	}
+
+	switch _obj.Type{
+	case TYPE_FILE:
+		f := _obj.Data.(QB_FileObject).File
+		return f.ComputeHash()
+	default:
+		return ""
+	}
+}
+
+func (obj QB_Object)Key() string{
+	return obj.String()
+}
+func (obj QB_Object)CheckKey(key string) bool{
+	return obj.String() == key
+}
 
 type QB_ObjectSet map[string]QB_Object
+func (_set QB_ObjectSet) Has(_obj QB_Object) bool{
+	if _set == nil{
+		return false
+	}
+
+	_, r := _set[_obj.String()]
+	return r
+}
+
 func (_set *QB_ObjectSet) Update(_obj QB_Object) QB_ObjectSet{
 	if *_set == nil{
 		*_set = make(QB_ObjectSet)
 	}
 	(*_set)[_obj.String()] = _obj
 	return *_set
+}
+
+func (_set *QB_ObjectSet) Intersect(_objs QB_ObjectSet){
+	if *_set == nil{
+		*_set = make(QB_ObjectSet)
+	}
+
+	for k, v := range _objs{
+		if _set.Has(v){
+			_set.Update(v)
+		}else{
+			delete(*_set, k)
+		}
+	}
 }
 func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
 	if *_set == nil{
