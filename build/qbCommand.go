@@ -4,19 +4,23 @@ import(
 	"os"
 	"fmt"
 	"slices"
+	"strings"
 
 	"os/exec"
+
+	"qb/misc"
 )
 
 type QB_Command struct{
 	/*
 		Command line ordering
-		[Args] [Input] [Output]
+		[Exec] [Args] [Input] [Output]
 
 		Order of output and input may change depending
 		on the 'input_idx' and 'output_idx' fields
 	*/
 	Args		[]string
+	Exec 		string
 	input_idx	int
 	output_idx	int
 	input		[]string
@@ -55,42 +59,89 @@ func (_cmd *QB_Command) AttachArgsFromIndex(_args []string, _idx int) *QB_Comman
 	return _cmd
 }
 
-func (_qb_cmd QB_Command) Run() (res bool){
-	var io_args []string = _qb_cmd.Args[1:]
+func (_qb_cmd *QB_Command) GetCmd() (exec string, args []string){
+	/*
+		Check if executable string is set
+
+		If not assume that 'QB_Command.Args[0]' is the executable
+	*/
+	offset := 0
+	exec = _qb_cmd.Exec
+	if _qb_cmd.Exec == ""{
+		offset = 1
+		exec = _qb_cmd.Args[0]
+	}
+
+	args = _qb_cmd.Args[offset:]
 
 	/*
 		Insert/Concat input
 	*/
 	if _qb_cmd.input_idx > 0{
-		io_args = slices.Insert(io_args, _qb_cmd.input_idx, _qb_cmd.input...)
+		args = slices.Insert(args, _qb_cmd.input_idx, _qb_cmd.input...)
 	}else{
-		io_args = slices.Concat(io_args, _qb_cmd.input)
+		args = slices.Concat(args, _qb_cmd.input)
 	}
 
 	/*
 		Insert/Concat output
 	*/
 	if _qb_cmd.output_idx > 0{
-		io_args = slices.Insert(io_args, _qb_cmd.output_idx, _qb_cmd.output...)
+		args = slices.Insert(args, _qb_cmd.output_idx, _qb_cmd.output...)
 	}else{
-		io_args = slices.Concat(io_args, _qb_cmd.output)
+		args = slices.Concat(args, _qb_cmd.output)
 	}
 
+	return exec, args
+}
+func (_qb_cmd QB_Command) Run() (res bool){
+	cmdline, args := _qb_cmd.GetCmd()
 
-	// Execute the command with 'io_args'
-	cmd := exec.Command(_qb_cmd.Args[0], io_args...)
+	cmd := exec.Command(cmdline, args...)
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
-	for _,arg := range cmd.Args{
-		fmt.Println(arg)
-	}
+	misc.PrintArray(args)
 
+	// Execute the command
 	err := cmd.Run()
 	if err != nil{
 		fmt.Println("Error occurend when execution specified command.")
+		fmt.Println(err)
+		return
+	}
+
+	return true
+}
+
+/*
+	TODO
+
+	Change to something like RunAs(QB_CommandShellKind)
+	and use some predefined shells
+
+	IMPORTANT!!!
+	Args have to be compliant with the powershell syntax
+*/
+func (_qb_cmd QB_Command) RunPowershell() (res bool){
+	exe, args := _qb_cmd.GetCmd()
+	cmdline := exe + " " + strings.Join(args, " ")
+
+	// Create a powershell command object
+	cmd := exec.Command("powershell", "-nologo", "-noprofile", "-command ", cmdline)
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+
+	misc.PrintArray(args)
+
+	// Execute the command
+	err := cmd.Run()
+	if err != nil{
+		fmt.Println("Error occured when execution specified command.")
 		fmt.Println(err)
 		return
 	}

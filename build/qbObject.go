@@ -185,7 +185,7 @@ func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
 }
 
 func (_set *QB_ObjectSet) StringArray() (arr []string){
-	for k, _ := range *_set{
+	for k := range *_set{
 		arr = append(arr, k)
 	}
 	return arr

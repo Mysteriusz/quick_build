@@ -3,10 +3,10 @@
 [Policies.CopyHeadersAfterBuild]
 cli = "powershell"
 args = [
-	"path",
-	"${STATE.GetHeaders}",
-	"destination",
-	"${STATE.OutputDirectory}/headers",
-	"force",
+	"-path",
+	"{STATE.GET_HEADERS}",
+	"-destination",
+	"{STATE.OUTPUT_DIRECTORY}/headers",
+	"-force",
 ]
 

@@ -5,10 +5,10 @@ fields from policy .toml files
 1.0 REFERENCING FIELDS
 
 To reference a state in the policy field
-simply put the '$' character before the field name 
+simply put the token in curly brackets '{' and '}'
 
 Example:
-	"$STATE.OUTPUT_DIRECTORY/some/further/path"
+	"{STATE.OUTPUT_DIRECTORY}/some/further/path"
 
 1.1 AVAILABLE FIELDS
 
