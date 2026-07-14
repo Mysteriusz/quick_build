@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"path/filepath"
 
+	. "qb/policies"
 	. "qb/build"
 	. "qb/io"
 )
@@ -17,17 +18,14 @@ func ArRunFromState(_policy *Ar_Policy, _state *QB_BuildState) (res bool){
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
 	// Load the policy file
-	file, res := ArInitPolicyFile(_policy)
+	file, res := QBLoadPolicyFile(_policy)
 	if !res{
 		return
 	}
 
 	// Lookup named policy and execute
-	cfg, res := file.Policies[policy_name]
+	cfg, res := QBDecodePolicy[Ar_PolicyConfig](file, policy_name)
 	if !res{
-		fmt.Printf("Policy file: %s,\ndoes not contain policy called: %s\n",
-			_policy.GetFile().FullPath,
-			policy_name)
 		return
 	}
 	return cfg.Execute(_state)

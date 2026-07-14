@@ -1,4 +1,6 @@
+#
 # Entry index 0
+#
 [[Entry]]
 
 name = "ax_utility_lib"
@@ -43,3 +45,38 @@ command = "ar" 				# The main exection command
 command_policy_alias = "llvm-ar" 	# The known toolchain specific execution policy alias
 command_policy_name = "MyLib" 		# Toolchain policy name
 
+[[Entry.Pipeline]]
+command = "copy-item" 			# The main exection command
+command_policy_alias = "shell-exec" 	# The known toolchain specific execution policy alias
+command_policy_name = "CopyHeadersAfterBuild" 		# Toolchain policy name
+
+#
+# Entry Index 1
+#
+#[[Entry]]
+
+#name = "ax_virt_layer"
+#source_directory = "D:/ax_project/ax_virt_layer/win64/user/src"
+#output_directory = "D:/ax_project/ax_virt_layer/win64/user/build"
+#
+#[[Entry.Pipeline]]
+#command = "clang"
+#command_policy_alias = "llvm-clang"
+#command_policy_name = "MyCompile"
+#
+#flags = [
+#	"m64",
+#	"Wno-deprecated-declarations",
+#	"std=c23",
+#	"mavx2",
+#	"mbmi2",
+#]
+#definitions = [
+#	"AX_UM",
+#	"AX_WIN64",
+#]
+#hooks = [
+#	"D:/ax_project/ax_virt_layer/win64/user/src",
+#	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm",
+#]
+#

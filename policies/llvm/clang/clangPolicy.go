@@ -4,8 +4,6 @@ import(
 	"fmt"
 	"path/filepath"
 
-	"github.com/pelletier/go-toml/v2"
-
 	"qb/misc"
 	. "qb/policies/vc"
 	. "qb/policies"
@@ -37,83 +35,6 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 	}
 
 	return true
-}
-
-func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
-	if _state == nil{
-		return
-	}
-	if !_policy.GetCapabilities().VersionControl{
-		return
-	}
-
-	/*
-		Load/Create version control object
-		and load it`s diff
-	*/
-	not_first_build, vc_state = VCFindOrCreateState(_state)
-	no_diff := VCDiff(_state, &vc_state)
-
-	hdr_diff := vc_state.DiffHeaders
-	src_diff := vc_state.DiffSources
-
-	/*
-		CLANG EXCLUSIVE
-
-		Update diff source files for clang 
-		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
-	*/
-	if not_first_build{
-		src_diff = ClangVCDiff(_state, &vc_state)
-		vc_state.DiffSources = src_diff
-	}
-
-	if len(hdr_diff) > 0{
-		println("==================================HDR DIFF==================================")
-		misc.PrintArray(hdr_diff.AllPaths())
-	}
-	if len(src_diff) > 0{
-		println("==================================SRC DIFF==================================")
-		misc.PrintArray(src_diff.AllPaths())
-	}
-
-	return not_first_build, no_diff && len(src_diff) == 0, vc_state
-}
-func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
-	if _qb_state == nil{
-		return
-	}
-	
-	/*
-		Merge both sets so that output working set of the 
-		version control has his objects updated
-	*/
-	//_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
-
-	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
-	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
-	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
-
-	// Save to file
-	_vc_state.File.Save()
-}
-
-func (_policy *Clang_Policy) GetFile() *QB_File{
-	if _policy.file.IsValid(){
-		return &_policy.file
-	}
-
-	if _policy.PATH[0] != '.'{
-		panic("CLANG_POLICY: invalid corrupted path.")
-	}
-
-	abs, err := filepath.Abs(_policy.PATH)
-	if err != nil{
-		panic("CLANG_POLICY: Unable to resolve relative path.")
-	}	
-
-	_policy.file = QBInitFile(abs)
-	return &_policy.file
 }
 
 func (_policy *Clang_Policy) GetCapabilities() QB_Capabilities{
@@ -188,25 +109,79 @@ OUTPUT:
 	panic("")
 }
 
-type Clang_PolicyFile struct{
-	Policies 	map[string]*Clang_PolicyConfig 	`toml:"Policies"`
-}
+/*
 
-func ClangInitPolicyFile(_policy *Clang_Policy) (cfg Clang_PolicyFile, res bool){
-	if _policy == nil{
-		fmt.Println("Invalid clang policy.")
+	================ VERSION CONTROL ================
+
+*/
+
+func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
+	if _state == nil{
+		return
+	}
+	if !_policy.GetCapabilities().VersionControl{
 		return
 	}
 
-	file := _policy.GetFile()
+	/*
+		Load/Create version control object
+		and load it`s diff
+	*/
+	not_first_build, vc_state = VCFindOrCreateState(_state)
+	no_diff := VCDiff(_state, &vc_state)
 
-	err := toml.NewDecoder(file.GetFile()).Decode(&cfg)
+	hdr_diff := vc_state.DiffHeaders
+	src_diff := vc_state.DiffSources
+
+	/*
+		CLANG EXCLUSIVE
+
+		Update diff source files for clang 
+		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
+	*/
+	if not_first_build{
+		src_diff = ClangVCDiff(_state, &vc_state)
+		vc_state.DiffSources = src_diff
+	}
+
+	if len(hdr_diff) > 0{
+		println("==================================HDR DIFF==================================")
+		misc.PrintArray(hdr_diff.AllPaths())
+	}
+	if len(src_diff) > 0{
+		println("==================================SRC DIFF==================================")
+		misc.PrintArray(src_diff.AllPaths())
+	}
+
+	return not_first_build, no_diff && len(src_diff) == 0, vc_state
+}
+func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+	if _qb_state == nil{
+		return
+	}
+	
+	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
+	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
+	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
+
+	// Save to file
+	_vc_state.File.Save()
+}
+
+func (_policy *Clang_Policy) GetFile() *QB_File{
+	if _policy.file.IsValid(){
+		return &_policy.file
+	}
+
+	if _policy.PATH[0] != '.'{
+		panic("CLANG_POLICY: invalid corrupted path.")
+	}
+
+	abs, err := filepath.Abs(_policy.PATH)
 	if err != nil{
-		fmt.Printf("Failed to decode: %s\n", file.FullPath)
-		return
-	}
-	defer file.Save()
+		panic("CLANG_POLICY: Unable to resolve relative path.")
+	}	
 
-	return cfg, true
+	_policy.file = QBInitFile(abs)
+	return &_policy.file
 }
-

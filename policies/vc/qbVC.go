@@ -125,6 +125,14 @@ func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
 }
 
+/*
+	Merge both sets so that input/output working set of the 
+	version control has both added and updated objects stored 
+
+	TODO:
+	(Need some type of deletion control,
+	so that objects that were deleted are not hanging)
+*/
 func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
 	_vc_state.Pipe().InWorkingSet.Merge(_qb_state.WorkingSet)
 }
@@ -188,10 +196,12 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
 	// Unique hash diff
 	d4 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
 
+	/*
 	println(len(d1))
 	println(len(d2))
 	println(len(d3))
 	println(d4)
+	*/
 
 	/*
 		TODO:

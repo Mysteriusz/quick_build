@@ -143,6 +143,7 @@ func (obj QB_Object)CheckKey(key string) bool{
 }
 
 type QB_ObjectSet map[string]QB_Object
+
 func (_set QB_ObjectSet) Has(_obj QB_Object) bool{
 	if _set == nil{
 		return false
@@ -156,7 +157,7 @@ func (_set *QB_ObjectSet) Update(_obj QB_Object) QB_ObjectSet{
 	if *_set == nil{
 		*_set = make(QB_ObjectSet)
 	}
-	(*_set)[_obj.String()] = _obj
+	(*_set)[_obj.Key()] = _obj
 	return *_set
 }
 
@@ -181,5 +182,12 @@ func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
 	for _, v := range _objs{
 		_set.Update(v)
 	}
+}
+
+func (_set *QB_ObjectSet) StringArray() (arr []string){
+	for k, _ := range *_set{
+		arr = append(arr, k)
+	}
+	return arr
 }
 

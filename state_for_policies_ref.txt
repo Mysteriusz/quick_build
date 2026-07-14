@@ -1,0 +1,34 @@
+
+Using this Reference System you can easily refernce QB_BuildState
+fields from policy .toml files
+
+1.0 REFERENCING FIELDS
+
+To reference a state in the policy field
+simply put the '$' character before the field name 
+
+Example:
+	"$STATE.OUTPUT_DIRECTORY/some/further/path"
+
+1.1 AVAILABLE FIELDS
+
+The following are the all the available fields
+and their QB_BuildState counterparts
+
+STATE.WORKING_SET -> QB_BuildState.WorkingSet
+STATE.GET_SOURCES -> QB_BuildState.GatherAllSources()
+STATE.GET_HEADERS -> QB_BuildState.GatherAllHeaders()
+STATE.SOURCE_DIRECTORY -> QB_BuildState.Config.SourceDirectory
+STATE.OUTPUT_DIRECTORY -> QB_BuildState.Config.OutputDirectory
+STATE.NAME -> QB_BuildState.Config.Name
+
+1.2 STRING CONVERSION
+
+Fields that are for example of type QB_Object will resolve
+to their string representation
+
+1.3 ARRAY CONVERSION
+
+If the field is an array it will mirror the array with string
+representation following the rule 1.2
+

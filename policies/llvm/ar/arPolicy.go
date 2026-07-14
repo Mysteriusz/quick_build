@@ -1,10 +1,7 @@
 package policies
 
 import(
-	"fmt"
 	"path/filepath"
-
-	"github.com/pelletier/go-toml/v2"
 
 	. "qb/policies/vc"
 	. "qb/policies"
@@ -33,52 +30,6 @@ func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
 	}
 
 	return true
-}
-
-func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
-	if _state == nil{
-		return
-	}
-	if !_policy.GetCapabilities().VersionControl{
-		return
-	}
-
-	/*
-		Load/Create version control object
-		and load it`s diff
-	*/
-	not_first_build, vc_state = VCFindOrCreateState(_state)
-
-	/*
-		AR EXCLUSIVE
-
-		Ar ignores source/header diffs
-		and only calculates diff for input/output objects
-	*/
-	in_diff := vc_state.DiffInput
-	out_diff := vc_state.DiffOutput
-	if not_first_build{
-		in_diff = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
-		vc_state.DiffInput = in_diff
-
-		out_diff = ArVCDiff(_state, &vc_state)
-		vc_state.DiffOutput = out_diff
-	}
-	no_hash_diff := (VCStateUniqueHash(_state) == vc_state.Pipe().StateHash)
-
-	println(len(in_diff))
-	println(len(out_diff))
-	return not_first_build, no_hash_diff && len(in_diff) == 0 && len(out_diff) == 0, vc_state
-}
-func (_policy *Ar_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
-	if _qb_state == nil || _vc_state == nil{
-		return
-	}
-
-	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
-
-	// Save to file
-	_vc_state.File.Save()
 }
 
 func (_policy *Ar_Policy) GetFile() *QB_File{
@@ -144,24 +95,59 @@ OUTPUT:
 	return true
 }
 
-type Ar_PolicyFile struct{
-	Policies 	map[string]*Ar_PolicyConfig 	`toml:"Policies"`
-}
+/*
 
-func ArInitPolicyFile(_policy *Ar_Policy) (cfg Ar_PolicyFile, res bool){
-	if _policy == nil{
-		fmt.Println("Invalid clang policy.")
+	================ VERSION CONTROL ================
+
+*/
+
+func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
+	if _state == nil{
+		return
+	}
+	if !_policy.GetCapabilities().VersionControl{
 		return
 	}
 
-	file := _policy.GetFile()
+	/*
+		Load/Create version control object
+		and load it`s diff
+	*/
+	not_first_build, vc_state = VCFindOrCreateState(_state)
 
-	err := toml.NewDecoder(file.GetFile()).Decode(&cfg)
-	if err != nil{
-		fmt.Printf("Failed to decode: %s\n", file.FullPath)
+	/*
+		AR EXCLUSIVE
+
+		Ar ignores source/header diffs
+		and only calculates diff for input/output objects
+	*/
+	in_diff := vc_state.DiffInput
+	out_diff := vc_state.DiffOutput
+	if not_first_build{
+		in_diff = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
+		vc_state.DiffInput = in_diff
+
+		out_diff = ArVCDiff(_state, &vc_state)
+		vc_state.DiffOutput = out_diff
+	}
+	no_hash_diff := (VCStateUniqueHash(_state) == vc_state.Pipe().StateHash)
+
+	/*
+	println(len(in_diff))
+	println(len(out_diff))
+	*/
+
+	return not_first_build, no_hash_diff && len(in_diff) == 0 && len(out_diff) == 0, vc_state
+}
+func (_policy *Ar_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+	if _qb_state == nil || _vc_state == nil{
 		return
 	}
 
-	return cfg, true
+	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
+
+	// Save to file
+	_vc_state.File.Save()
 }
+
 

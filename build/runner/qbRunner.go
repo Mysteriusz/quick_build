@@ -5,7 +5,7 @@ import(
 	"time"
 
 	. "qb/build"
-	. "qb/policies/map"
+	. "qb/policies/maps/lookups"
 	. "qb/policies/vc"
 )
 

@@ -1,0 +1,12 @@
+[Policies]
+
+[Policies.CopyHeadersAfterBuild]
+cli = "powershell"
+args = [
+	"path",
+	"${STATE.GetHeaders}",
+	"destination",
+	"${STATE.OutputDirectory}/headers",
+	"force",
+]
+

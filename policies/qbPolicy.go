@@ -26,3 +26,4 @@ type QB_PolicyInfo interface{
 
 	VC_PolicyInt
 }
+
