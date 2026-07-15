@@ -12,7 +12,7 @@ import(
 
 type QB_FileGetFunc func()(QB_FileArray)
 type QB_BuildState struct{
-	Config 		*QB_ConfigEntry
+	Config 		QB_ConfigEntry
 	WorkingSet	QB_ObjectSet
 	GetSources	QB_FileGetFunc
 	GetHeaders	QB_FileGetFunc
@@ -29,11 +29,7 @@ func (_state *QB_BuildState) Restore(){
 	_state.GetHeaders = _state.GatherAllHeaders
 }
 
-func QBInitBuild(_cfg *QB_ConfigEntry) (state QB_BuildState, res bool){
-	if _cfg == nil{
-		return
-	}
-
+func QBInitBuild(_cfg QB_ConfigEntry) (state QB_BuildState, res bool){
 	state.Restore()
 
 	state.Config = _cfg

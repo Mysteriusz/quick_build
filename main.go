@@ -1,6 +1,8 @@
 package main
 
 import(
+	"fmt"
+
 	. "qb/configs"
 	. "qb/build"
 	. "qb/build/runner"
@@ -14,12 +16,23 @@ func main(){
 	if !res{
 		return
 	}
-	state, res := QBInitBuild(&cfg.Entries[0])
-	if !res{
-		return
-	}
-	if !ExecuteFromState(&state){
-		return
+
+	for _, entry := range cfg.Entries{
+		fmt.Println("=================================================")
+		fmt.Printf("Starting entry build\n")
+		fmt.Printf("Build name: %s\n", entry.Name)
+		fmt.Printf("Input directory: %s\n", entry.SourceDirectory)
+		fmt.Printf("Output directory: %s\n", entry.OutputDirectory)
+		fmt.Printf("Pipeline length: %d\n", len(entry.Pipeline))
+		fmt.Println("=================================================")
+
+		state, res := QBInitBuild(entry)
+		if !res{
+			return
+		}
+		if !ExecuteFromState(&state){
+			return
+		}
 	}
 
 	/*v := VCIntersectFiles(

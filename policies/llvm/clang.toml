@@ -3,6 +3,10 @@
 [Policies.MyCompile]
 function = "Compile"
 
-[Policies.MyLink]
+[Policies.AX_VIRT_LAYER_LINK]
 function = "Link"
+vars = {
+	"output_name" = "ax_virt_layer",
+	"output_ext" = "exe",
+}
 

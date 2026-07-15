@@ -29,6 +29,9 @@ func PwshExecFromState(_policy *Shell_PolicyConfig, _state *QB_BuildState) (res 
 		PwshFormatRef(&refs[idx])
 	}
 
+	/*
+		Merge all strings based on their kind
+	*/
 	args, err := QBRefMergeByKind(refs)
 	if !err{
 		fmt.Println("Unable to merge reference variables.")

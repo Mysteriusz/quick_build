@@ -78,6 +78,11 @@ func QBRefConvertFld(_state *QB_BuildState, fld string) QB_RefVar{
 
 /*
 	Convert reference variable to string array
+
+	Delimiter-Kind mapping: 
+		- REF_STRING -> "" (no delimiter)
+		- REF_PATHS -> " "
+		- REF_OBJECT -> " "
 */
 func QB_RefDelim(Kind QB_RefVarKind) string{
 	switch(Kind){
@@ -153,6 +158,22 @@ func QBRefResolve(_state *QB_BuildState, val string) (arr []QB_RefVar, res bool)
 	return arr, true
 }
 
+/*
+	Merge all strings based on their kind
+
+	For example if 'QB_RefVar.Kind' == REF_STRING
+	the entire 'QB_RefVar.Value' will be 'joined'
+	and separated with kind-based delimiter
+
+	The delimiter it defined by the function 'QB_RefDelim()'
+
+	Example:
+		QB_RefVar.Value = []string{"D:/path", "/to/something"}
+
+		the joined version would be:
+
+		QB_RefVar.Value = []string{"D:/path/to/something"}
+*/
 func QBRefMergeByKind(refs []QB_RefVar) (buf []string, res bool){
 	if refs == nil{
 		return

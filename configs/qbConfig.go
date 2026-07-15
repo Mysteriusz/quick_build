@@ -17,6 +17,7 @@ type QB_PipeEntry struct{
 	Flags 			[]string	`toml:"flags"`
 	Definitions 		[]string	`toml:"definitions"`
 	Hooks 			[]string	`toml:"hooks"`
+	AlwaysRebuild		bool 		`toml:"always_rebuild"`
 }
 
 type QB_ConfigEntry struct{

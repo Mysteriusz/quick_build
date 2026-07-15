@@ -33,6 +33,7 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 	fmt.Println("Policy file alias: ", _state.CurrentPipe().CommandPolicyAlias)
 	fmt.Println("Policy name: ", _state.CurrentPipe().CommandPolicyName)
 	fmt.Println("==================================")
+	println()
 
 	fmt.Println("Input working set entries: ", len(_state.WorkingSet))
 	
@@ -52,6 +53,11 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 	*/
 	if vc_enabled{
 		not_first_build, not_updated, vc_state = policy.BeginVersionControl(_state)
+		// Force a full rebuild
+		if pipe.AlwaysRebuild{
+			not_first_build = false
+		}
+
 		if not_first_build && not_updated{
 			vc_state.File.Save()
 			goto timer_end
@@ -64,7 +70,10 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		vc_state.SetInputWorkingSet(_state)
 	}
 	
-	policy.Run(_state)
+	res = policy.Run(_state)
+	if !res{
+		return
+	}
 
 	/*
 		Save the version control state
@@ -89,6 +98,7 @@ timer_end:
 
 	fmt.Println("Output working set entries: ", len(_state.WorkingSet))
 	fmt.Println("Policy execution took: ", end.Sub(start))
+	println()
 
 	return true
 }

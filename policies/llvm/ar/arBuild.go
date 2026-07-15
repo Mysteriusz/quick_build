@@ -38,8 +38,6 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set Q
 
 	args := make([]string, 0)
 
-	args = append(args, _state.CurrentPipe().Command)
-
 	/*
 		ar requires a mode in the following example format:
 			- "rcs"
@@ -70,6 +68,11 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set Q
 
 	// Attach input
 	cmd.SetInput(inputs)
+
+	// Set execution process to pipe defined command
+	cmd.Exec = _state.CurrentPipe().Command
+	// Set command working directory as output directory
+	cmd.Directory = _state.Config.OutputDirectory
 
 	res = cmd.Run()
 	if !res{

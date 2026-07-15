@@ -21,6 +21,7 @@ type QB_Command struct{
 	*/
 	Args		[]string
 	Exec 		string
+	Directory 	string
 	input_idx	int
 	output_idx	int
 	input		[]string
@@ -98,11 +99,13 @@ func (_qb_cmd QB_Command) Run() (res bool){
 	cmdline, args := _qb_cmd.GetCmd()
 
 	cmd := exec.Command(cmdline, args...)
+	cmd.Dir = _qb_cmd.Directory
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
+	println(cmdline)
 	misc.PrintArray(args)
 
 	// Execute the command

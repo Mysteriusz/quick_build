@@ -21,8 +21,6 @@ import(
 		- CurrentPipe().Definitions
 		- CurrentPipe().Hooks
 		- CurrentPipe().Flags
-		- GetHeaders().AllHashes()
-		- GetSources().AllHashes()
 */
 func VCStateUniqueHash(_state *QB_BuildState) string{
 	if _state == nil{
@@ -42,14 +40,6 @@ func VCStateUniqueHash(_state *QB_BuildState) string{
 	}
 
 	for _, str := range _state.CurrentPipe().Flags {
-		io.WriteString(hash, str)
-	}
-
-	for _, str := range _state.GatherAllHeaders().AllHashes() {
-		io.WriteString(hash, str)
-	}
-	
-	for _, str := range _state.GatherAllSources().AllHashes() {
 		io.WriteString(hash, str)
 	}
 

@@ -53,6 +53,7 @@ FIELDS:
 
 type Clang_PolicyConfig struct{
 	Function	string 	`toml:"function"`
+	Vars		map[string]any `toml:"vars"`
 }
 
 func (_cfg *Clang_PolicyConfig)Execute(_state *QB_BuildState) bool{
@@ -94,7 +95,7 @@ OUTPUT:
 
 */
 	case "Link":	
-		out_set, res := ClangLinkFromState(_state)
+		out_set, res := ClangLinkFromState(_state, _cfg)
 		if !res{
 			return false
 		}
@@ -128,9 +129,14 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 		and load it`s diff
 	*/
 	not_first_build, vc_state = VCFindOrCreateState(_state)
-	no_diff := VCDiff(_state, &vc_state)
+	no_diff, no_crit_diff := VCDiff(_state, &vc_state)
 
-	hdr_diff := vc_state.DiffHeaders
+	/*
+		If critical diff is present,
+		then act as a complete rebuild
+	*/
+	not_first_build = not_first_build && no_crit_diff
+
 	src_diff := vc_state.DiffSources
 
 	/*
@@ -141,16 +147,20 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 	*/
 	if not_first_build{
 		src_diff = ClangVCDiff(_state, &vc_state)
-		vc_state.DiffSources = src_diff
+		vc_state.DiffSources = QBFileArrayUnion(vc_state.DiffSources, src_diff)
 	}
 
-	if len(hdr_diff) > 0{
+	if len(vc_state.DiffHeaders) > 0{
+		println()
 		println("==================================HDR DIFF==================================")
-		misc.PrintArray(hdr_diff.AllPaths())
+		misc.PrintArray(vc_state.DiffHeaders.AllPaths())
+		println()
 	}
-	if len(src_diff) > 0{
+	if len(vc_state.DiffSources) > 0{
+		println()
 		println("==================================SRC DIFF==================================")
-		misc.PrintArray(src_diff.AllPaths())
+		misc.PrintArray(vc_state.DiffSources.AllPaths())
+		println()
 	}
 
 	return not_first_build, no_diff && len(src_diff) == 0, vc_state

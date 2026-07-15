@@ -16,6 +16,7 @@ func QBLoadPolicyFile(_policy QB_PolicyInfo) (file QB_PolicyFile, res bool){
 	}
 
 	qb_file := _policy.GetFile()
+	defer qb_file.Save()
 
 	err := toml.NewDecoder(qb_file.GetFile()).Decode(&file)
 	if err != nil{

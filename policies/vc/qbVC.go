@@ -176,7 +176,7 @@ func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state 
 /*
 	Gather all changed objects to 'VC_FileState' object
 */
-func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
+func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool, not_crit_diff bool){
 	if _qb_state == nil || _vc_state == nil{
 		return
 	}
@@ -189,26 +189,22 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool){
 	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
 	_vc_state.DiffHeaders = d2
 
-	// Objects diff
+	// Input objects diff
 	d3 := VCDiffObjects(_qb_state.WorkingSet, _vc_state.Pipe().InWorkingSet)
 	_vc_state.DiffInput = d3
 
-	// Unique hash diff
-	d4 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
-
 	/*
-	println(len(d1))
-	println(len(d2))
-	println(len(d3))
-	println(d4)
+		Unique hash diff
+		(if this if false the rebuild has to happen for the entire build)
 	*/
+	d4 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
 
 	/*
 		TODO:
 		Add input and output set validation via hash
 	*/
 
-	return len(d1) == 0 && len(d2) == 0 && len(d3) == 0 && d4
+	return len(d1) == 0 && len(d2) == 0 && len(d3) == 0, d4
 }
 
 /*
