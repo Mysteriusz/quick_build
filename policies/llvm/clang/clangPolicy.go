@@ -130,7 +130,7 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 	*/
 	not_first_build, vc_state = VCFindOrCreateState(_state)
 	no_diff, no_crit_diff := VCDiff(_state, &vc_state)
-
+	
 	/*
 		If critical diff is present,
 		then act as a complete rebuild

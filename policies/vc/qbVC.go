@@ -23,7 +23,7 @@ type VC_PolicyInt interface{
 		This should require 'GetCapabilities' to return an object
 		with field 'QB_Capabilities.VersionControl' == true
 
-		Eles the not_updated value should always be 0 (false)
+		Else the not_updated value should always be 0 (false)
 	*/
 	BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, _vc_state VC_FileState)
 	/*
@@ -121,12 +121,16 @@ func (_vc_file *VC_File) Save() (res bool){
 		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders
 */
 func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
-	_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders}
-	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
+	if len(_vc_state.DiffHeaders) > 0{
+		_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders}
+	}	
+	if len(_vc_state.DiffSources) > 0{
+		_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
+	}
 }
 
 /*
-	Merge both sets so that input/output working set of the 
+	Merge both sets so that input working set of the 
 	version control has both added and updated objects stored 
 
 	TODO:
@@ -136,6 +140,15 @@ func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
 	_vc_state.Pipe().InWorkingSet.Merge(_qb_state.WorkingSet)
 }
+
+/*
+	Merge both sets so that output working set of the 
+	version control has both added and updated objects stored 
+
+	TODO:
+	(Need some type of deletion control,
+	so that objects that were deleted are not hanging)
+*/
 func (_vc_state *VC_FileState)SetOutputWorkingSet(_qb_state *QB_BuildState){
 	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
 }

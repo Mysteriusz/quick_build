@@ -1,8 +1,10 @@
 package policies
 
 import(
+	"os"
 	"fmt"
 	"bufio"
+	"bytes"
 	"strings"
 	"path/filepath"
 
@@ -13,9 +15,14 @@ import(
 )
 
 type ClangVC_D struct{
-	obj 	QB_File // '.o' file
-	src 	QB_File // '.c' file
-	deps 	QB_FileArray // All dependencies
+	/*
+		All dependencies
+
+		[0] == .o
+		[1] == .c
+		[2:] == .h
+	*/
+	deps 	QB_FileArray
 }
 
 /*
@@ -113,11 +120,18 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 		}
 
 		/*
+			TODO
+
+			Compare source in the parsed .d file 
+			to the 'src' file
+		*/
+		/*
 			Intersect headers from the dependency file and gathered by the 'VC_FileState'
 			If any are matched that means the file has to be re-compiled
 		*/
-		shared_diffs := misc.Intersect(file.deps.AllPaths(), _vc_state.DiffHeaders.AllPaths())
+		shared_diffs := misc.Intersect(file.deps[2:].AllPaths(), _vc_state.DiffHeaders.AllPaths())
 		if len(shared_diffs) != 0{
+			fmt.Println("Header files do not match")
 			src_diff = append(src_diff, src)
 			continue
 		}
@@ -137,31 +151,33 @@ func ClangVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff QB_
 */
 const CLANG_VC_D_TRIM = "\x09\x20\x5c\x3a"
 func ClangVCParseD(_file QB_File) (res bool, dep ClangVC_D){
-	scanner := bufio.NewScanner(_file.GetFile())
+	reader := bufio.NewReader(_file.GetFile())
 	defer _file.Save()
 
-	/*
-		Read the object file
-	*/
-	if !scanner.Scan(){
-		return
-	}
-	dep.obj = QBInitFile(strings.Trim(scanner.Text(), CLANG_VC_D_TRIM))
+	var buf bytes.Buffer
 
 	/*
-		Read the source file
+		Read each dependency file path
 	*/
-	if !scanner.Scan(){
-		return
-	}
-	dep.src = QBInitFile(strings.Trim(scanner.Text(), CLANG_VC_D_TRIM))
+	for{
+		val, err := reader.ReadByte()
+		if err != nil{
+			break
+		}
 
-	/*
-		Read the source file
-	*/
-	for scanner.Scan(){
-		path := strings.Trim(scanner.Text(), CLANG_VC_D_TRIM)
+		if val != ' ' && val != '\n'{
+			buf.WriteByte(val)
+			continue
+		}
+
+		path := strings.Trim(buf.String(), CLANG_VC_D_TRIM)
+		stat, err := os.Stat(path)
+		if err != nil || stat.IsDir(){
+			continue
+		}
+
 		dep.deps = append(dep.deps, QBInitFile(path))
+		buf.Reset()
 	}
 
 	return true, dep

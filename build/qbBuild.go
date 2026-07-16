@@ -75,7 +75,7 @@ func (_state *QB_BuildState) GatherAllHeaders() QB_FileArray{
 	if _state.header_files != nil{
 		return _state.header_files
 	}
-	headers, res := gather_file_type(_state.Config.SourceDirectory, ".h")
+	headers, res := gather_file_type(_state.Config.HeaderDirectory, ".h")
 	if !res{
 		fmt.Println("Failed to gather header files.")
 		panic("Assertion failed!!!")

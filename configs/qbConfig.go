@@ -22,6 +22,7 @@ type QB_PipeEntry struct{
 
 type QB_ConfigEntry struct{
 	Name 			string	 `toml:"name"`
+	HeaderDirectory 	string	 `toml:"header_directory"`
 	SourceDirectory 	string	 `toml:"source_directory"`
 	OutputDirectory 	string	 `toml:"output_directory"`
 	Pipeline 		[]QB_PipeEntry `toml:"Pipeline"`

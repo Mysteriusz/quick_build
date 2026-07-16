@@ -52,26 +52,47 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		and ignore if it was successfull
 	*/
 	if vc_enabled{
+		/*
+ 			Perform the version control scan
+
+			Check for diffs, and their importance
+			and return the information and the VC_FileState
+
+			Load the diffs to the 'VC_FileState' object
+			to allow further vc setups before running
+		*/
 		not_first_build, not_updated, vc_state = policy.BeginVersionControl(_state)
-		// Force a full rebuild
+
+		/*
+ 			Force a full rebuild
+		*/
 		if pipe.AlwaysRebuild{
 			not_first_build = false
 		}
 
+		/*
+			Move finish the current build
+			(nothing has changed)
+		*/
 		if not_first_build && not_updated{
 			vc_state.File.Save()
 			goto timer_end
 		}
 
-		if not_first_build{
-			VCLinkState(_state, &vc_state)
-		}
+		// Link 'QB_BuildState' to 'VC_FileState' variables
+		VCLinkState(_state, &vc_state)
 
+		/*
+			TODO
+			Im not sure this will work correctly when inputs change
+		*/
 		vc_state.SetInputWorkingSet(_state)
 	}
 	
+	// Exexcute the policy
 	res = policy.Run(_state)
 	if !res{
+		fmt.Println("Policy execution has failed")
 		return
 	}
 
@@ -79,11 +100,15 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		Save the version control state
 	*/
 	if vc_enabled{
+		/*
+			Merge expected output with output that was produced
+
+			This ensures that even when 2 new files were added
+			and 30 were already in the expected output
+			32 are actually saved
+		*/
 		vc_state.SetOutputWorkingSet(_state)
-
-		policy.EndVersionControl(_state, &vc_state)
 	}
-
 
 	// End execution timer
 timer_end:
@@ -93,7 +118,17 @@ timer_end:
 		Load the working set with expected output
 	*/
 	if vc_enabled{
+		/*
+			Set 'QB_BuildState.WorkingSet'
+			as the expected output of the pipe
+		*/
 		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
+
+		/*
+			Finish the version control by saving policy-specific variables
+			and the version control file
+		*/
+		policy.EndVersionControl(_state, &vc_state)
 	}
 
 	fmt.Println("Output working set entries: ", len(_state.WorkingSet))

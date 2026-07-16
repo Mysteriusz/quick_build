@@ -12,7 +12,8 @@ import(
 )
 
 func main(){
-	cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/test.toml")
+	//cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/test.toml")
+	cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/cases.toml")
 	if !res{
 		return
 	}
