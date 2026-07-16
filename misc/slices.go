@@ -73,7 +73,7 @@ func Diff[A comparable](_a ...[]A) (array []A){
 func PrintArray(_a ...[]string){
 	for _, slice := range _a{
 		for _, e := range slice{
-			fmt.Println(e)
+			fmt.Printf("%s\n", e)
 		}
 	}
 }

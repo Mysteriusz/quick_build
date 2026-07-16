@@ -31,7 +31,6 @@ type QB_Object struct{
 		and should be used with caution
 	*/
 	extra	map[string]json.RawMessage
-	hash	string
 }
 
 func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
@@ -104,7 +103,7 @@ func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
 	return true
 }
 
-func (_obj *QB_Object) Exists() bool{
+func (_obj QB_Object) Exists() bool{
 	switch _obj.Type{
 	case TYPE_FILE:
 		file := _obj.Data.(QB_FileObject).File
@@ -113,7 +112,7 @@ func (_obj *QB_Object) Exists() bool{
 		return false
 	}
 }
-func (_obj *QB_Object) String() string{
+func (_obj QB_Object) String() string{
 	switch _obj.Type{
 	case TYPE_FILE:
 		return _obj.Data.(QB_FileObject).File.FullPath
@@ -121,17 +120,26 @@ func (_obj *QB_Object) String() string{
 		return ""
 	}
 }
-func(_obj *QB_Object) ComputeHash() string{
-	if _obj.hash != ""{
-		return _obj.hash
-	}
 
+/*
+			Hashing
+*/
+func(_obj *QB_Object) ComputeHash() string{
 	switch _obj.Type{
 	case TYPE_FILE:
 		f := _obj.Data.(QB_FileObject).File
 		return f.ComputeHash()
 	default:
 		return ""
+	}
+}
+func (_obj *QB_Object) InvalidateHash() bool{
+	switch _obj.Type{
+	case TYPE_FILE:
+		f := _obj.Data.(QB_FileObject).File
+		return f.InvalidateHash()
+	default:
+		return false
 	}
 }
 
@@ -158,6 +166,14 @@ func (_set *QB_ObjectSet) Update(_obj QB_Object) QB_ObjectSet{
 		*_set = make(QB_ObjectSet)
 	}
 	(*_set)[_obj.Key()] = _obj
+	return *_set
+}
+func (_set *QB_ObjectSet) Remove(_obj QB_Object) QB_ObjectSet{
+	if *_set == nil{
+		*_set = make(QB_ObjectSet)
+		return *_set
+	}
+	delete(*_set, _obj.Key())
 	return *_set
 }
 

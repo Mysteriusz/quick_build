@@ -73,7 +73,7 @@ func VCPipeUniqueId(_state *QB_BuildState) string{
 /*
 	Check and return what files differ
 */
-func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff QB_FileArray){
+func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff VC_FileDiff){
 	if _f1 == nil || _f2 == nil{
 		return
 	}
@@ -103,27 +103,32 @@ func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff QB_FileArray){
 				Compare hashes to determine file content change
 			*/
 			if f.ComputeHash() == e.ComputeHash(){
-				count[e.FullPath]++
+				count[e.FullPath] = 0
 			}
 			s2[e.FullPath] = true
 		}
 	}
 
 	for k, v := range count{
-		if v == 1{
-			diff = append(diff, files[k])
+		if !files[k].IsValid(){
+			diff.Removed = append(diff.Removed, files[k])
 		}
+
+		if v == 1{
+			diff.Modified = append(diff.Modified, files[k])
+		}
+		// v == 0 means file has no diff
 	}
 
 	return diff
 }
-func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff QB_ObjectSet){
+func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff VC_ObjectDiff){
 	if _f1 == nil || _f2 == nil{
 		return
 	}
 
 	count := make(map[string]uint32)
-	files := make(map[string]QB_Object)
+	objs := make(map[string]QB_Object)
 	s1 := make(map[string]bool)
 	s2 := make(map[string]bool)
 	for k, e := range _f1{
@@ -133,7 +138,7 @@ func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff QB_ObjectSet){
 		}
 
 		if !s1[k]{
-			files[k] = e
+			objs[k] = e
 			count[k]++
 			s1[k] = true
 		}
@@ -145,10 +150,10 @@ func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff QB_ObjectSet){
 		}
 
 		if !s2[k]{
-			f, r := files[k]
+			f, r := objs[k]
 			if !r{
 				// Didn`t exist in the '_f1' array
-				files[k] = e
+				objs[k] = e
 				count[k] = 1
 				continue
 			}
@@ -164,8 +169,11 @@ func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff QB_ObjectSet){
 	}
 
 	for k, v := range count{
+		if !objs[k].Exists(){
+			diff.Removed.Update(objs[k])
+		}
 		if v == 1{
-			diff.Update(files[k])
+			diff.Modified.Update(objs[k])
 		}
 	}
 	return

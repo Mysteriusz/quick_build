@@ -76,14 +76,31 @@ func (_file *VC_File)PipeFromIdx(_idx VC_PipeIdx) *VC_PipeStructure{
 	return &_file.Structure.Pipes[_idx]
 }
 
+type VC_FileDiff struct{
+	Modified QB_FileArray // Includes both added and modified
+	Removed QB_FileArray
+}
+func (diff VC_FileDiff) Len() int{
+	return len(diff.Modified) + len(diff.Removed)
+}
+
+type VC_ObjectDiff struct{
+	Modified QB_ObjectSet // Includes both added and modified
+	Removed QB_ObjectSet
+}
+func (diff VC_ObjectDiff) Len() int{
+	return len(diff.Modified) + len(diff.Removed)
+}
+
 type VC_FileState struct{
 	File		VC_File
 	PipeIdx		VC_PipeIdx
-	DiffInput	QB_ObjectSet
-	DiffOutput	QB_ObjectSet
-	DiffSources 	QB_FileArray
-	DiffHeaders	QB_FileArray
+	DiffInput	VC_ObjectDiff
+	DiffOutput	VC_ObjectDiff
+	DiffSources 	VC_FileDiff
+	DiffHeaders	VC_FileDiff
 }
+
 func (_file *VC_FileState)Pipe() *VC_PipeStructure{
 	return _file.File.PipeFromIdx(_file.PipeIdx)
 }
@@ -117,16 +134,12 @@ func (_vc_file *VC_File) Save() (res bool){
 
 /*
 	Link the following values to the 'VC_FileState'
-		1) QB_BuildState.GetSources -> VC_FileState.DiffSources
-		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders
+		1) QB_BuildState.GetSources -> VC_FileState.DiffSources.Modified
+		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders.Modified
 */
 func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
-	if len(_vc_state.DiffHeaders) > 0{
-		_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders}
-	}	
-	if len(_vc_state.DiffSources) > 0{
-		_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources}
-	}
+	_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders.Modified}
+	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources.Modified}
 }
 
 /*
@@ -151,6 +164,9 @@ func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
 */
 func (_vc_state *VC_FileState)SetOutputWorkingSet(_qb_state *QB_BuildState){
 	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
+	for _, o := range _vc_state.DiffOutput.Removed{
+		_vc_state.Pipe().OutWorkingSet.Remove(o)
+	}
 }
 
 /*
@@ -217,7 +233,7 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool, n
 		Add input and output set validation via hash
 	*/
 
-	return len(d1) == 0 && len(d2) == 0 && len(d3) == 0, d4
+	return d1.Len() == 0 && d2.Len() == 0 && d3.Len() == 0, d4
 }
 
 /*

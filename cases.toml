@@ -26,28 +26,28 @@ hooks = [
 	"D:/fld",
 ]
 
-[[Entry]]
-name = "t1"
-header_directory = "D:/fld1/inc"
-source_directory = "D:/fld1/src"
-output_directory = "D:/fld1/build"
+#[[Entry]]
+#name = "t1"
+#header_directory = "D:/fld1/inc"
+#source_directory = "D:/fld1/src"
+#output_directory = "D:/fld1/build"
 
-[[Entry.Pipeline]]
-
-command = "clang" 			# The main exection command
-command_policy_alias = "llvm-clang" 	# The known toolchain specific execution policy alias
-command_policy_name = "MyCompile" 	# Toolchain policy name
+#[[Entry.Pipeline]]
 #
-# 	Usage of these properties may differ depending on
-#	the policy file and name and their implementations
-#
-flags = [
-	"m64",
-	"std=c23",
-]
-definitions = [
-	"MYDEF",
-]
-hooks = [
-	"D:/fld1",
-]
+#command = "clang" 			# The main exection command
+#command_policy_alias = "llvm-clang" 	# The known toolchain specific execution policy alias
+#command_policy_name = "MyCompile" 	# Toolchain policy name
+##
+## 	Usage of these properties may differ depending on
+##	the policy file and name and their implementations
+##
+#flags = [
+#	"m64",
+#	"std=c23",
+#]
+#definitions = [
+#	"MYDEF",
+#]
+#hooks = [
+#	"D:/fld1",
+#]

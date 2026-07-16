@@ -32,18 +32,15 @@ type QB_File struct{
 	file		*os.File
 }
 
-func (_file *QB_File) InvalidateHash() bool{
-	temp := QBInitFile(_file.FullPath)
-	return _file.ComputeHash() == temp.ComputeHash()
+func (_file QB_File) T() string{
+	return _file.hash
 }
-	
-func (_file *QB_File) ComputeHash() string{
-	if _file.hash != ""{
-		return _file.hash
-	}
-
+/*
+			Hashing
+*/
+func(_file *QB_File) recomputeHash() string{
 	hash := sha256.New()
-	if _, err := io.Copy(hash, _file.GetFile()); err != nil{
+	if _, err := io.Copy(hash, _file.GetFileReadOnly()); err != nil{
 		return ""
 	}
 
@@ -51,6 +48,23 @@ func (_file *QB_File) ComputeHash() string{
 	_file.Save()
 
 	return _file.hash
+}
+func (_file *QB_File) ComputeHash() string{
+	if !_file.IsValid(){
+		return ""
+	}
+	if _file.hash != ""{
+		return _file.hash
+	}
+	return _file.recomputeHash()
+}
+func (_file *QB_File) InvalidateHash() bool{
+	temp := QBInitFile(_file.FullPath)
+	return _file.ComputeHash() == temp.ComputeHash()
+}
+
+func (_file QB_File) Compare(file QB_File) bool{
+	return _file.ComputeHash() == file.ComputeHash() && _file.FullPath == file.FullPath
 }
 
 func (_file QB_File) MarshalJSON() ([]byte, error){
@@ -97,6 +111,21 @@ func (_file *QB_File) GetFile() *os.File{
 	if err != nil{
 		fmt.Printf("Failed to open:\n %s\n", _file.FullPath)
 		panic("Assertion failed!!!")
+	}
+
+	_file.file = os_file
+	return os_file
+}
+func (_file *QB_File) GetFileReadOnly() *os.File{
+	// If already opened just pass the file
+	if _file.file != nil{
+		return _file.file
+	}
+
+	// Else open the file
+	os_file, err := os.OpenFile(_file.FullPath, os.O_RDONLY, 0644)
+	if err != nil{
+		fmt.Printf("Failed to open:\n %s\n", _file.FullPath)
 	}
 
 	_file.file = os_file

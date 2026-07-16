@@ -1,18 +1,17 @@
 package policies
 
 import(
-	"fmt"
 	"path/filepath"
 
 	"qb/misc"
+	"qb/policies/llvm/clang/maps"
+
+	. "qb/policies/llvm/clang/cfg"
 	. "qb/policies/vc"
 	. "qb/policies"
 	. "qb/build"
 	. "qb/io"
 )
-
-const CLANG_OUT_DEP string = "dependency_file"
-const CLANG_OUT_SRC string = "source_file"
 
 type Clang_Policy struct{
 	/*
@@ -22,6 +21,31 @@ type Clang_Policy struct{
 	CAPS 		QB_Capabilities
 
 	file 		QB_File
+	config		*Clang_PolicyConfig
+}
+
+func (_policy *Clang_Policy) GetConfig(_state *QB_BuildState) *Clang_PolicyConfig{
+	if _policy.config != nil{
+		return _policy.config
+	}
+
+	// Get the policy name to execute
+	policy_name := _state.CurrentPipe().CommandPolicyName
+
+	// Load the policy file
+	file, res := QBLoadPolicyFile(_policy)
+	if !res{
+		return nil
+	}
+
+	// Lookup named policy and execute
+	cfg, res := QBDecodePolicy[Clang_PolicyConfig](file, policy_name)
+	if !res{
+		return nil
+	}
+	
+	_policy.config = &cfg
+	return _policy.config
 }
 
 func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
@@ -29,7 +53,17 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 		return false
 	}
 
-	res = ClangRunFromState(_policy, _state)
+	cfg := _policy.GetConfig(_state)
+	if cfg == nil{
+		return
+	}
+
+	exec, res := clang.EXECUTE_FUNCS[cfg.Function]
+	if !res{
+		return
+	}
+
+	res = exec(cfg, _state)
 	if !res{
 		return
 	}
@@ -39,75 +73,6 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 
 func (_policy *Clang_Policy) GetCapabilities() QB_Capabilities{
 	return _policy.CAPS
-}
-
-/*	
-
-FIELDS:
-	'Function' -> determines what execution flow the policy uses
-	Acceptable 'Function' for Clang are:
-		- Compile 			-> ClangCompileFromState
-		- Link 				-> ClangLinkFromState
-
-*/
-
-type Clang_PolicyConfig struct{
-	Function	string 	`toml:"function"`
-	Vars		map[string]any `toml:"vars"`
-}
-
-func (_cfg *Clang_PolicyConfig)Execute(_state *QB_BuildState) bool{
-	switch(_cfg.Function){
-/*	
-
-	Execute compilation only for the QB_BuildState object`s
-	of the current QB_PipeEntry
-
-INPUT:
-	NONE
-
-OUTPUT:
-	[]QB_Object with types: TYPE_FILE
-
-*/
-	case "Compile":
-		_state.ClearWorkingSet()
-
-		objects, res := ClangCompileFromState(_state)
-		if !res{
-			return false
-		}
-
-		_state.LoadWorkingSet(objects)
-
-		return true
-
-/*	
-
-	Execute linking only for the QB_BuildState object`s
-	of the current QB_PipeEntry
-
-INPUT:
-	_state.WorkingSet types: TYPE_FILE
-
-OUTPUT:
-	_state.WorkingSet types: TYPE_FILE
-
-*/
-	case "Link":	
-		out_set, res := ClangLinkFromState(_state, _cfg)
-		if !res{
-			return false
-		}
-
-		_state.ClearWorkingSet()
-		_state.LoadWorkingSet(out_set)
-
-		return true
-	}
-
-	fmt.Printf("Invalid policy function: %s\n", _cfg.Function)
-	panic("")
 }
 
 /*
@@ -137,8 +102,6 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 	*/
 	not_first_build = not_first_build && no_crit_diff
 
-	src_diff := vc_state.DiffSources
-
 	/*
 		CLANG EXCLUSIVE
 
@@ -146,24 +109,25 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
 	*/
 	if not_first_build{
-		src_diff = ClangVCDiff(_state, &vc_state)
-		vc_state.DiffSources = QBFileArrayUnion(vc_state.DiffSources, src_diff)
+		ClangVCDiff(_policy, _state, &vc_state)
 	}
 
-	if len(vc_state.DiffHeaders) > 0{
+	if vc_state.DiffHeaders.Len() > 0{
 		println()
 		println("==================================HDR DIFF==================================")
-		misc.PrintArray(vc_state.DiffHeaders.AllPaths())
+		misc.PrintArray(vc_state.DiffHeaders.Modified.AllPaths())
+		misc.PrintArray(vc_state.DiffHeaders.Removed.AllPaths())
 		println()
 	}
-	if len(vc_state.DiffSources) > 0{
+	if vc_state.DiffSources.Len() > 0{
 		println()
 		println("==================================SRC DIFF==================================")
-		misc.PrintArray(vc_state.DiffSources.AllPaths())
+		misc.PrintArray(vc_state.DiffSources.Modified.AllPaths())
+		misc.PrintArray(vc_state.DiffSources.Removed.AllPaths())
 		println()
 	}
 
-	return not_first_build, no_diff && len(src_diff) == 0, vc_state
+	return not_first_build, no_diff && vc_state.DiffSources.Len() == 0, vc_state
 }
 func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	if _qb_state == nil{

@@ -119,16 +119,16 @@ timer_end:
 	*/
 	if vc_enabled{
 		/*
-			Set 'QB_BuildState.WorkingSet'
-			as the expected output of the pipe
-		*/
-		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
-
-		/*
 			Finish the version control by saving policy-specific variables
 			and the version control file
 		*/
 		policy.EndVersionControl(_state, &vc_state)
+
+		/*
+			Set 'QB_BuildState.WorkingSet'
+			as the expected output of the pipe
+		*/
+		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
 	}
 
 	fmt.Println("Output working set entries: ", len(_state.WorkingSet))

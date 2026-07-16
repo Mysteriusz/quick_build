@@ -5,14 +5,17 @@ import(
 	. "qb/policies/vc"
 )
 
-func ArVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(obj_diff QB_ObjectSet){
+func ArVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(obj_diff VC_ObjectDiff){
 	if _qb_state == nil || _vc_state == nil{
 		return
 	}
 
 	for _, obj := range _vc_state.Pipe().OutWorkingSet{
 		if !obj.Exists(){
-			obj_diff.Update(obj)
+			obj_diff.Removed.Update(obj)
+		}
+		if !obj.InvalidateHash(){
+			obj_diff.Modified.Update(obj)
 		}
 	}
 

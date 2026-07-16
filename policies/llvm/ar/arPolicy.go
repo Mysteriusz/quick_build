@@ -121,23 +121,13 @@ func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_
 		Ar ignores source/header diffs
 		and only calculates diff for input/output objects
 	*/
-	in_diff := vc_state.DiffInput
-	out_diff := vc_state.DiffOutput
 	if not_first_build{
-		in_diff = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
-		vc_state.DiffInput = in_diff
-
-		out_diff = ArVCDiff(_state, &vc_state)
-		vc_state.DiffOutput = out_diff
+		vc_state.DiffInput = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
+		vc_state.DiffOutput = ArVCDiff(_state, &vc_state)
 	}
 	no_hash_diff := (VCStateUniqueHash(_state) == vc_state.Pipe().StateHash)
 
-	/*
-	println(len(in_diff))
-	println(len(out_diff))
-	*/
-
-	return not_first_build, no_hash_diff && len(in_diff) == 0 && len(out_diff) == 0, vc_state
+	return not_first_build, no_hash_diff && len(vc_state.DiffInput.Modified) == 0 && len(vc_state.DiffOutput.Modified) == 0, vc_state
 }
 func (_policy *Ar_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	if _qb_state == nil || _vc_state == nil{
