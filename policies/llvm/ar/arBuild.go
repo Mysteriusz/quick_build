@@ -1,15 +1,15 @@
-package policies
+package ar
 
 import(
 	"fmt"
 	"path/filepath"
 
-	. "qb/policies"
-	. "qb/build"
-	. "qb/io"
+	"qb/policies"
+	"qb/build"
+	"qb/qbio"
 )
 
-func ArRunFromState(_policy *Ar_Policy, _state *QB_BuildState) (res bool){
+func RunFromState(_policy *Policy, _state *qb.BuildState) (res bool){
 	if _state == nil || _policy == nil{
 		return
 	}
@@ -18,20 +18,20 @@ func ArRunFromState(_policy *Ar_Policy, _state *QB_BuildState) (res bool){
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
 	// Load the policy file
-	file, res := QBLoadPolicyFile(_policy)
+	file, res := policies.LoadPolicyFile(_policy)
 	if !res{
 		return
 	}
 
 	// Lookup named policy and execute
-	cfg, res := QBDecodePolicy[Ar_PolicyConfig](file, policy_name)
+	cfg, res := policies.DecodePolicy[PolicyConfig](file, policy_name)
 	if !res{
 		return
 	}
 	return cfg.Execute(_state)
 }
 
-func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set QB_ObjectSet, res bool){
+func ArchiveFromState(_cfg *PolicyConfig, _state *qb.BuildState) (out_set qb.ObjectSet, res bool){
 	if _cfg == nil || _state == nil{
 		return
 	}
@@ -46,11 +46,11 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set Q
 
 	inputs := make([]string, 0, len(_state.WorkingSet))
 	for _,obj := range _state.WorkingSet{
-		if obj.Type != TYPE_FILE{
+		if obj.Type != qb.TYPE_FILE{
 			continue
 		}
 
-		file := obj.Data.(QB_FileObject).File
+		file := obj.Data.(qb.FileObject).File
 		if !file.IsValid(){
 			fmt.Printf("Failed to validate: %s\n", file.FullPath)
 		}
@@ -58,10 +58,10 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set Q
 		args = append(args, file.FullPath)
 	}
 
-	output := filepath.Join(_state.Config.OutputDirectory, ChangeExtension(_cfg.OutputName, _cfg.OutputExt))
+	output := filepath.Join(_state.Config.OutputDirectory, qbio.ChangeExtension(_cfg.OutputName, _cfg.OutputExt))
 	
 	// Output has to be at index after _cfg.Mode (required by ar)
-	cmd := QBInitCommand(args, 0, 2)
+	cmd := qb.InitCommand(args, 0, 2)
 
 	// Attach output
 	cmd.SetOutput([]string{output})
@@ -79,7 +79,7 @@ func ArArchiveFromState(_cfg *Ar_PolicyConfig, _state *QB_BuildState) (out_set Q
 		return
 	}
 
-	output_obj, res := QBInitObject(output, TYPE_FILE)
+	output_obj, res := qb.InitObject(output, qb.TYPE_FILE)
 	if !res{
 		return
 	}	

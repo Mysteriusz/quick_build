@@ -1,13 +1,13 @@
-package clang
+package clang_vc
 
 import(
 	"fmt"
 	"qb/misc"
 
-	. "qb/io"
-	. "qb/build"
-	. "qb/policies/vc"
-	. "qb/policies/llvm/clang/cfg"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies/vc"
+	"qb/policies/llvm/clang/cfg"
 )
 
 /*
@@ -38,13 +38,13 @@ import(
           }
         }
 */
-func ClangVCDiffSources(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_diff VC_FileDiff){
+func DiffSources(_qb_state *qb.BuildState, _vc_state *vc.FileState)(src_diff vc.FileDiff){
 	if _vc_state == nil{
 		return
 	}
 
 	for _, val := range _vc_state.Pipe().OutWorkingSet{
-		if val.Type != TYPE_FILE{
+		if val.Type != qb.TYPE_FILE{
 			continue
 		}
 
@@ -52,9 +52,9 @@ func ClangVCDiffSources(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_d
 			Resolve extra objects for the file
 		*/
 
-		obj := val.Data.(QB_FileObject).File
-		_,dep := QBGetObjectExtra[QB_File](&val, CLANG_OUT_DEP)
-		_,src := QBGetObjectExtra[QB_File](&val, CLANG_OUT_SRC)
+		obj := val.Data.(qb.FileObject).File
+		_,dep := qb.GetObjectExtra[qbio.File](&val, clang.OUT_DEP)
+		_,src := qb.GetObjectExtra[qbio.File](&val, clang.OUT_SRC)
 
 		/*
 			Validate the Dependency file
@@ -100,7 +100,7 @@ func ClangVCDiffSources(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_d
 			Parse the dependency file
 		*/
 
-		res, file := ClangVCParseD(dep)
+		res, file := clang.ParseD(dep)
 		if !res{
 			fmt.Printf("Unable to parse the dependency file:\n %s\n", dep.FullPath)
 			src_diff.Modified = append(src_diff.Modified, src)
@@ -114,7 +114,7 @@ func ClangVCDiffSources(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_d
 		}
 
 		/*
-			Intersect headers from the dependency file and gathered by the 'VC_FileState'
+			Intersect headers from the dependency file and gathered by the 'vc.FileState'
 			If any are matched that means the file has to be re-compiled
 		*/
 		shared_diffs := misc.Intersect(file.Deps[2:].AllPaths(), _vc_state.DiffHeaders.Modified.AllPaths())
@@ -127,13 +127,13 @@ func ClangVCDiffSources(_qb_state *QB_BuildState, _vc_state *VC_FileState)(src_d
 
 	return src_diff
 }
-func ClangVCDiffOutForAll(_qb_state *QB_BuildState, _vc_state *VC_FileState) (out_diff VC_ObjectDiff){
+func DiffOutForAll(_qb_state *qb.BuildState, _vc_state *vc.FileState) (out_diff vc.ObjectDiff){
 	for _, val := range _vc_state.Pipe().OutWorkingSet{
-		if val.Type != TYPE_FILE{
+		if val.Type != qb.TYPE_FILE{
 			continue
 		}
 
-		_,src := QBGetObjectExtra[QB_File](&val, CLANG_OUT_SRC)
+		_,src := qb.GetObjectExtra[qbio.File](&val, clang.OUT_SRC)
 
 		if !src.IsValid(){
 			out_diff.Removed.Update(val)
@@ -148,7 +148,7 @@ func ClangVCDiffOutForAll(_qb_state *QB_BuildState, _vc_state *VC_FileState) (ou
 	
 	return out_diff
 }
-func ClangVCDiffOutForAny(_qb_state *QB_BuildState, _vc_state *VC_FileState) (out_diff VC_ObjectDiff){
+func DiffOutForAny(_qb_state *qb.BuildState, _vc_state *vc.FileState) (out_diff vc.ObjectDiff){
 	return
 }
 

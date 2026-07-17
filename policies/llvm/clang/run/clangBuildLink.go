@@ -3,9 +3,9 @@ package run
 import(
 	"fmt"
 
-	. "qb/io"
-	. "qb/build"
-	. "qb/policies/llvm/clang/cfg"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies/llvm/clang/cfg"
 )
 
 /*
@@ -25,7 +25,7 @@ import(
 		-myflag `
 		-o D:/output.exe `
 */
-func ClangLinkFromState(_state *QB_BuildState, _cfg *Clang_PolicyConfig) (out_set QB_ObjectSet, res bool){
+func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.ObjectSet, res bool){
 	if _state == nil{
 		return
 	}
@@ -56,20 +56,20 @@ func ClangLinkFromState(_state *QB_BuildState, _cfg *Clang_PolicyConfig) (out_se
 	if len(pipe.Hooks) == 0{
 		// All files are included directly
 		args = append(args,
-			ClangWriteArgs("-I", _state.GatherAllHeaders().AllPaths())...
+			WriteArgs("-I", _state.GatherAllHeaders().AllPaths())...
 		)
 	}else{
 		// Write only provided hooks
 		args = append(args,
-			ClangWriteArgs("-I", pipe.Hooks)...
+			WriteArgs("-I", pipe.Hooks)...
 		)
 	}
 
 	args = append(args,
-		ClangWriteArgs("-D", pipe.Definitions)...
+		WriteArgs("-D", pipe.Definitions)...
 	)
 	args = append(args,
-		ClangWriteArgs("-", pipe.Flags)...
+		WriteArgs("-", pipe.Flags)...
 	)
 
 	/*
@@ -78,11 +78,11 @@ func ClangLinkFromState(_state *QB_BuildState, _cfg *Clang_PolicyConfig) (out_se
 
 	inputs := make([]string, 0, len(_state.WorkingSet))
 	for _,obj := range _state.WorkingSet{
-		if obj.Type != TYPE_FILE{
+		if obj.Type != qb.TYPE_FILE{
 			continue
 		}
 
-		file := obj.Data.(QB_FileObject).File
+		file := obj.Data.(qb.FileObject).File
 		if !file.IsValid(){
 			fmt.Printf("Failed to validate file:\n %s\n", file.FullPath)
 			return
@@ -95,13 +95,13 @@ func ClangLinkFromState(_state *QB_BuildState, _cfg *Clang_PolicyConfig) (out_se
 		Resolve fullpath of the output
 	*/
 
-	output_path := ChangeDirectory(ChangeExtension(output_name.(string), output_ext.(string)), _state.Config.OutputDirectory)
+	output_path := qbio.ChangeDirectory(qbio.ChangeExtension(output_name.(string), output_ext.(string)), _state.Config.OutputDirectory)
 
 	/*
 		Initialize and configure the command 
 	*/
 
-	cmd := QBInitCommand(args, len(pipe.Hooks) + len(pipe.Definitions) + 1, 0)
+	cmd := qb.InitCommand(args, len(pipe.Hooks) + len(pipe.Definitions) + 1, 0)
 
 	// Set execution process to pipe defined command
 	cmd.Exec = _state.CurrentPipe().Command
@@ -119,10 +119,10 @@ func ClangLinkFromState(_state *QB_BuildState, _cfg *Clang_PolicyConfig) (out_se
 	}
 
 	/*
-		Initialize the QB_Object as the linked output
+		Initialize the qb.Object as the linked output
 	*/
 
-	obj, res := QBInitObject(output_path, TYPE_FILE)
+	obj, res := qb.InitObject(output_path, qb.TYPE_FILE)
 	if !res{
 		return
 	}

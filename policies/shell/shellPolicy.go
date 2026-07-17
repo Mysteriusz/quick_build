@@ -1,31 +1,31 @@
-package policies
+package shell
 
 import(
 	"path/filepath"
 
-	. "qb/io"
-	. "qb/build"
-	. "qb/policies"
-	. "qb/policies/vc"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies"
+	"qb/policies/vc"
 
-	. "qb/policies/shell/cfg"
-	. "qb/policies/shell/maps"
+	"qb/policies/shell/cfg"
+	"qb/policies/shell/maps"
 )
 
-type Shell_Policy struct{
+type Policy struct{
 	/*
 		Should never be modified
 	*/
 	PATH 		string // Has to start with '.' character
-	CAPS 		QB_Capabilities
+	CAPS 		policies.Capabilities
 
-	file 		QB_File
+	file 		qbio.File
 }
 
-func (_policy Shell_Policy) GetCapabilities() QB_Capabilities{
+func (_policy Policy) GetCapabilities() policies.Capabilities{
 	return _policy.CAPS
 }
-func (_policy *Shell_Policy) GetFile() *QB_File{
+func (_policy *Policy) GetFile() *qbio.File{
 	if _policy.file.IsValid(){
 		return &_policy.file
 	}
@@ -39,11 +39,11 @@ func (_policy *Shell_Policy) GetFile() *QB_File{
 		panic("CLANG_POLICY: Unable to resolve relative path.")
 	}	
 
-	_policy.file = QBInitFile(abs)
+	_policy.file = qbio.InitFile(abs)
 	return &_policy.file
 }
 
-func (_policy *Shell_Policy) Run(_state *QB_BuildState) (res bool){
+func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
 	if _state == nil{
 		return
 	}
@@ -52,19 +52,19 @@ func (_policy *Shell_Policy) Run(_state *QB_BuildState) (res bool){
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
 	// Load the policy file
-	file, res := QBLoadPolicyFile(_policy)
+	file, res := policies.LoadPolicyFile(_policy)
 	if !res{
 		return
 	}
 
 	// Find and decode the policy by name
-	cfg, res := QBDecodePolicy[Shell_PolicyConfig](file, policy_name)
+	cfg, res := policies.DecodePolicy[shell.PolicyConfig](file, policy_name)
 	if !res{
 		return
 	}
 
 	// Lookup cli entry function
-	exec, res := ShellCliFuncLookup(cfg.Cli)
+	exec, res := maps.CliFuncLookup(cfg.Cli)
 	if !res{
 		return
 	}
@@ -79,9 +79,9 @@ func (_policy *Shell_Policy) Run(_state *QB_BuildState) (res bool){
 
 */
 
-func (_policy *Shell_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, _vc_state VC_FileState){
+func (_policy *Policy) BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, _vc_state vc.FileState){
 	return
 }
-func (_policy *Shell_Policy) EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState){
+func (_policy *Policy) EndVersionControl(_state *qb.BuildState, _vc_state *vc.FileState){
 }
 

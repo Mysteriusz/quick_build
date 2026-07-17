@@ -1,30 +1,30 @@
-package policies
+package clang
 
 import(
 	"path/filepath"
 
 	"qb/misc"
-	"qb/policies/llvm/clang/maps"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies"
+	"qb/policies/vc"
 
-	. "qb/policies/llvm/clang/cfg"
-	. "qb/policies/vc"
-	. "qb/policies"
-	. "qb/build"
-	. "qb/io"
+	"qb/policies/llvm/clang/maps"
+	"qb/policies/llvm/clang/cfg"
 )
 
-type Clang_Policy struct{
+type Policy struct{
 	/*
 		Should never be modified
 	*/
 	PATH 		string // Has to start with '.' character
-	CAPS 		QB_Capabilities
+	CAPS 		policies.Capabilities
 
-	file 		QB_File
-	config		*Clang_PolicyConfig
+	file 		qbio.File
+	config		*clang.PolicyConfig
 }
 
-func (_policy *Clang_Policy) GetConfig(_state *QB_BuildState) *Clang_PolicyConfig{
+func (_policy *Policy) GetConfig(_state *qb.BuildState) *clang.PolicyConfig{
 	if _policy.config != nil{
 		return _policy.config
 	}
@@ -33,13 +33,13 @@ func (_policy *Clang_Policy) GetConfig(_state *QB_BuildState) *Clang_PolicyConfi
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
 	// Load the policy file
-	file, res := QBLoadPolicyFile(_policy)
+	file, res := policies.LoadPolicyFile(_policy)
 	if !res{
 		return nil
 	}
 
 	// Lookup named policy and execute
-	cfg, res := QBDecodePolicy[Clang_PolicyConfig](file, policy_name)
+	cfg, res := policies.DecodePolicy[clang.PolicyConfig](file, policy_name)
 	if !res{
 		return nil
 	}
@@ -48,7 +48,7 @@ func (_policy *Clang_Policy) GetConfig(_state *QB_BuildState) *Clang_PolicyConfi
 	return _policy.config
 }
 
-func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
+func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
 	if _state == nil{
 		return false
 	}
@@ -58,7 +58,7 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 		return
 	}
 
-	exec, res := clang.EXECUTE_FUNCS[cfg.Function]
+	exec, res := maps.EXECUTE_FUNCS[cfg.Function]
 	if !res{
 		return
 	}
@@ -71,7 +71,7 @@ func (_policy *Clang_Policy) Run(_state *QB_BuildState) (res bool){
 	return true
 }
 
-func (_policy *Clang_Policy) GetCapabilities() QB_Capabilities{
+func (_policy *Policy) GetCapabilities() policies.Capabilities{
 	return _policy.CAPS
 }
 
@@ -81,7 +81,7 @@ func (_policy *Clang_Policy) GetCapabilities() QB_Capabilities{
 
 */
 
-func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
+func (_policy *Policy) BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, vc_state vc.FileState){
 	if _state == nil{
 		return
 	}
@@ -93,8 +93,8 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 		Load/Create version control object
 		and load it`s diff
 	*/
-	not_first_build, vc_state = VCFindOrCreateState(_state)
-	no_diff, no_crit_diff := VCDiff(_state, &vc_state)
+	not_first_build, vc_state = vc.FindOrCreateState(_state)
+	no_diff, no_crit_diff := vc.Diff(_state, &vc_state)
 	
 	/*
 		If critical diff is present,
@@ -106,10 +106,10 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 		CLANG EXCLUSIVE
 
 		Update diff source files for clang 
-		(Only when the build already exist since it requires VC_FileState.OutWorkingSet)
+		(Only when the build already exist since it requires vc.FileState.OutWorkingSet)
 	*/
 	if not_first_build{
-		ClangVCDiff(_policy, _state, &vc_state)
+		Diff(_policy, _state, &vc_state)
 	}
 
 	if vc_state.DiffHeaders.Len() > 0{
@@ -129,20 +129,20 @@ func (_policy *Clang_Policy) BeginVersionControl(_state *QB_BuildState) (not_fir
 
 	return not_first_build, no_diff && vc_state.DiffSources.Len() == 0, vc_state
 }
-func (_policy *Clang_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+func (_policy *Policy) EndVersionControl(_qb_state *qb.BuildState, _vc_state *vc.FileState){
 	if _qb_state == nil{
 		return
 	}
 	
 	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
 	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
-	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
+	_vc_state.Pipe().StateHash = vc.StateUniqueHash(_qb_state)
 
 	// Save to file
 	_vc_state.File.Save()
 }
 
-func (_policy *Clang_Policy) GetFile() *QB_File{
+func (_policy *Policy) GetFile() *qbio.File{
 	if _policy.file.IsValid(){
 		return &_policy.file
 	}
@@ -156,6 +156,6 @@ func (_policy *Clang_Policy) GetFile() *QB_File{
 		panic("CLANG_POLICY: Unable to resolve relative path.")
 	}	
 
-	_policy.file = QBInitFile(abs)
+	_policy.file = qbio.InitFile(abs)
 	return &_policy.file
 }

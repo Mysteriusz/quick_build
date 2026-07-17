@@ -1,4 +1,4 @@
-package io
+package qbio
 
 import(
 	"crypto/sha256"
@@ -11,13 +11,13 @@ import(
 	"path"
 	"path/filepath"
 
-	. "qb/misc"
+	"qb/misc"
 )
 
 /*
 	TODO: (VERY IMPORTANT)
 	Make the fullpath be validated whenever you acquire the file
-	and if 'QB_File.FullPath' reload the 'QB_File.file' field!!!
+	and if 'File.FullPath' reload the 'File.file' field!!!
 	(Use a private prev_fullpath field or something) 
 
 	JSON representation example:
@@ -26,19 +26,19 @@ import(
           "hash": "3f90c0d3ad1c7fcfeba79b2ae4c600e6610a8874e6d4656355ecbbb2dcc03bed"
         }
 */
-type QB_File struct{
+type File struct{
 	FullPath 	string 
 	hash		string
 	file		*os.File
 }
 
-func (_file QB_File) T() string{
+func (_file File) T() string{
 	return _file.hash
 }
 /*
 			Hashing
 */
-func(_file *QB_File) recomputeHash() string{
+func(_file *File) recomputeHash() string{
 	hash := sha256.New()
 	if _, err := io.Copy(hash, _file.GetFileReadOnly()); err != nil{
 		return ""
@@ -49,7 +49,7 @@ func(_file *QB_File) recomputeHash() string{
 
 	return _file.hash
 }
-func (_file *QB_File) ComputeHash() string{
+func (_file *File) ComputeHash() string{
 	if !_file.IsValid(){
 		return ""
 	}
@@ -58,17 +58,17 @@ func (_file *QB_File) ComputeHash() string{
 	}
 	return _file.recomputeHash()
 }
-func (_file *QB_File) InvalidateHash() bool{
-	temp := QBInitFile(_file.FullPath)
+func (_file *File) InvalidateHash() bool{
+	temp := InitFile(_file.FullPath)
 	return _file.ComputeHash() == temp.ComputeHash()
 }
 
-func (_file QB_File) Compare(file QB_File) bool{
+func (_file File) Compare(file File) bool{
 	return _file.ComputeHash() == file.ComputeHash() && _file.FullPath == file.FullPath
 }
 
-func (_file QB_File) MarshalJSON() ([]byte, error){
-	type alias QB_File
+func (_file File) MarshalJSON() ([]byte, error){
+	type alias File
 	return json.Marshal(struct{
 		FullPath string `json:"fullpath"`
 		Hash string `json:"hash"`
@@ -77,7 +77,7 @@ func (_file QB_File) MarshalJSON() ([]byte, error){
 		Hash: _file.ComputeHash(),
 	})
 }
-func (f *QB_File) UnmarshalJSON(data []byte) error {
+func (f *File) UnmarshalJSON(data []byte) error {
  	var raw struct {
 		FullPath string `json:"fullpath"`
         	Hash     string `json:"hash"`
@@ -93,14 +93,14 @@ func (f *QB_File) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func QBInitFile(_path string) (qb_file QB_File){
+func InitFile(_path string) (qb_file File){
 	qb_file.FullPath = NormalizePath(_path)
 	qb_file.file = nil
 
 	return qb_file
 }
 
-func (_file *QB_File) GetFile() *os.File{
+func (_file *File) GetFile() *os.File{
 	// If already opened just pass the file
 	if _file.file != nil{
 		return _file.file
@@ -116,7 +116,7 @@ func (_file *QB_File) GetFile() *os.File{
 	_file.file = os_file
 	return os_file
 }
-func (_file *QB_File) GetFileReadOnly() *os.File{
+func (_file *File) GetFileReadOnly() *os.File{
 	// If already opened just pass the file
 	if _file.file != nil{
 		return _file.file
@@ -135,7 +135,7 @@ func (_file *QB_File) GetFileReadOnly() *os.File{
 /*
 	Create/Close the file
 */
-func (_file *QB_File) Save() (res bool){
+func (_file *File) Save() (res bool){
 	// State where the file exists but isn`t open
 	if _file.IsValid() && _file.file == nil{
 		return true
@@ -164,12 +164,12 @@ func (_file *QB_File) Save() (res bool){
 
 	return true
 }
-func (_file *QB_File) Clear(){
+func (_file *File) Clear(){
 	_file.GetFile()
 	_file.file.Truncate(0)
 	_file.file.Seek(0, 0)
 }
-func (_file QB_File) IsValid() (res bool){
+func (_file File) IsValid() (res bool){
 	stat, err := os.Lstat(_file.FullPath)
 	if err != nil{
 		return
@@ -214,21 +214,21 @@ func NormalizePath(_path string) string{
 	return abs
 }
 
-type QB_FileArray []QB_File
+type FileArray []File
 
-func (_farray QB_FileArray) AllPaths() []string{
-	return Select[QB_File, string](
+func (_farray FileArray) AllPaths() []string{
+	return misc.Select[File, string](
 		_farray,
 		"FullPath")
 }
-func (_farray QB_FileArray) AllHashes() []string{
+func (_farray FileArray) AllHashes() []string{
 	buf := make([]string, len(_farray))
 	for _,file := range _farray{
 		buf = append(buf, file.ComputeHash())
 	}
 	return buf
 }
-func (_farray QB_FileArray) AllInvalid() (invalid []QB_File){
+func (_farray FileArray) AllInvalid() (invalid []File){
 	for _,file := range _farray{
 		if !file.IsValid(){
 			invalid = append(invalid, file)
@@ -238,7 +238,7 @@ func (_farray QB_FileArray) AllInvalid() (invalid []QB_File){
 }
 
 
-func QBFileArrayUnion(_a ...QB_FileArray) (array QB_FileArray){
+func FileArrayUnion(_a ...FileArray) (array FileArray){
 	seen := make(map[string]bool)
 	for _, slice := range _a{
 		for _, e := range slice{
@@ -252,9 +252,9 @@ func QBFileArrayUnion(_a ...QB_FileArray) (array QB_FileArray){
 
 	return array
 }
-func QBFileArrayIntersect(_a ...QB_FileArray) (array QB_FileArray){
+func FileArrayIntersect(_a ...FileArray) (array FileArray){
 	count := make(map[string]uint32)
-	files := make(map[string]QB_File)
+	files := make(map[string]File)
 	for _, slice := range _a{
 		for _, e := range slice{
 			if count[e.FullPath] == 0{

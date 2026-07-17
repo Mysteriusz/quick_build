@@ -6,11 +6,11 @@ import(
 	
 	"github.com/pelletier/go-toml/v2"
 
-	. "qb/io"
+	"qb/qbio"
 )
 
-type QB_PipeIdx = uint8
-type QB_PipeEntry struct{
+type PipeIdx = uint8
+type PipeEntry struct{
 	Command 		string	 	`toml:"command"`
 	CommandPolicyAlias 	string	 	`toml:"command_policy_alias"`
 	CommandPolicyName 	string	 	`toml:"command_policy_name"`
@@ -20,19 +20,19 @@ type QB_PipeEntry struct{
 	AlwaysRebuild		bool 		`toml:"always_rebuild"`
 }
 
-type QB_ConfigEntry struct{
+type ConfigEntry struct{
 	Name 			string	 `toml:"name"`
 	HeaderDirectory 	string	 `toml:"header_directory"`
 	SourceDirectory 	string	 `toml:"source_directory"`
 	OutputDirectory 	string	 `toml:"output_directory"`
-	Pipeline 		[]QB_PipeEntry `toml:"Pipeline"`
+	Pipeline 		[]PipeEntry `toml:"Pipeline"`
 }
-type QB_Config struct{
-	Entries 		[]QB_ConfigEntry `toml:"Entry"`
+type Config struct{
+	Entries 		[]ConfigEntry `toml:"Entry"`
 }
 
-func QBConfigLoad(_path string) (cfg QB_Config, res bool){
-	file := QBInitFile(_path)
+func ConfigLoad(_path string) (cfg Config, res bool){
+	file := qbio.InitFile(_path)
 
 	// Config has to be .toml
 	if filepath.Ext(file.FullPath) != ".toml"{
@@ -40,9 +40,9 @@ func QBConfigLoad(_path string) (cfg QB_Config, res bool){
 		return
 	}
 
-	return QBConfigDecode(file)
+	return ConfigDecode(file)
 }
-func QBConfigDecode(_file QB_File) (cfg QB_Config, res bool){
+func ConfigDecode(_file qbio.File) (cfg Config, res bool){
 	if !_file.IsValid(){
 		return
 	}

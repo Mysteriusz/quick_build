@@ -1,26 +1,26 @@
-package build
+package qb
 
 import(
 	"fmt"
 	"encoding/json"
 
-	. "qb/io"
+	"qb/qbio"
 )
 
-type QB_FileObject struct{
-	File 	QB_File		`json:"file"`
+type FileObject struct{
+	File 	qbio.File		`json:"file"`
 }
 
-type QB_ObjectType uint8
+type ObjectType uint8
 const(
 	/*
-		QB_Object.Data == QB_File
+		Object.Data == File
 	*/
-	TYPE_FILE QB_ObjectType = iota
+	TYPE_FILE ObjectType = iota
 )
 
-type QB_Object struct{
-	Type 	QB_ObjectType 	`json:"type"`
+type Object struct{
+	Type 	ObjectType 	`json:"type"`
 	Data	any		`json:"data"`
 	/*
 		Allows for storage of additional data
@@ -33,11 +33,11 @@ type QB_Object struct{
 	extra	map[string]json.RawMessage
 }
 
-func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
+func InitObject(_data any, _type ObjectType) (obj Object, res bool){
 	switch _type{
 	case TYPE_FILE:
-		obj.Data = QB_FileObject{
-			File: QBInitFile(_data.(string)),
+		obj.Data = FileObject{
+			File: qbio.InitFile(_data.(string)),
 		}
 	default:
 		return
@@ -48,9 +48,9 @@ func QBInitObject(_data any, _type QB_ObjectType) (obj QB_Object, res bool){
 	return obj, true
 }
 
-func (_obj QB_Object) MarshalJSON() ([]byte, error){
+func (_obj Object) MarshalJSON() ([]byte, error){
 	return json.Marshal(&struct {
-        	Type QB_ObjectType 	`json:"type"`
+        	Type ObjectType 	`json:"type"`
         	Data any 		`json:"data"`
         	Extra map[string]json.RawMessage `json:"extra,omitempty"`
 	}{
@@ -59,9 +59,9 @@ func (_obj QB_Object) MarshalJSON() ([]byte, error){
 		Extra: _obj.extra,
 	})
 }
-func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
+func (_obj *Object) UnmarshalJSON(data []byte) error{
     	var raw struct {
-        	Type QB_ObjectType  `json:"type"`
+        	Type ObjectType  `json:"type"`
         	Data json.RawMessage `json:"data"`
         	Extra map[string]json.RawMessage `json:"extra,omitempty"`
     	}
@@ -73,7 +73,7 @@ func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
 
 	switch _obj.Type{
 	case TYPE_FILE:
-		var file QB_FileObject
+		var file FileObject
 		if err := json.Unmarshal(raw.Data, &file); err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (_obj *QB_Object) UnmarshalJSON(data []byte) error{
 	return nil
 }
 
-func QBGetObjectExtra[T any](_obj *QB_Object, _slot string) (res bool, data T){
+func GetObjectExtra[T any](_obj *Object, _slot string) (res bool, data T){
 	raw, res := _obj.extra[_slot]
 
 	if err := json.Unmarshal(raw, &data); err != nil{
@@ -93,7 +93,7 @@ func QBGetObjectExtra[T any](_obj *QB_Object, _slot string) (res bool, data T){
 
 	return res, data
 }
-func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
+func SetObjectExtra[T any](_obj *Object, _slot string, _data T) (res bool){
 	val, err := json.Marshal(_data)
 	if err != nil{
 		return
@@ -103,19 +103,19 @@ func QBSetObjectExtra[T any](_obj *QB_Object, _slot string, _data T) (res bool){
 	return true
 }
 
-func (_obj QB_Object) Exists() bool{
+func (_obj Object) Exists() bool{
 	switch _obj.Type{
 	case TYPE_FILE:
-		file := _obj.Data.(QB_FileObject).File
+		file := _obj.Data.(FileObject).File
 		return file.IsValid() && file.InvalidateHash()
 	default:
 		return false
 	}
 }
-func (_obj QB_Object) String() string{
+func (_obj Object) String() string{
 	switch _obj.Type{
 	case TYPE_FILE:
-		return _obj.Data.(QB_FileObject).File.FullPath
+		return _obj.Data.(FileObject).File.FullPath
 	default:
 		return ""
 	}
@@ -124,35 +124,35 @@ func (_obj QB_Object) String() string{
 /*
 			Hashing
 */
-func(_obj *QB_Object) ComputeHash() string{
+func(_obj *Object) ComputeHash() string{
 	switch _obj.Type{
 	case TYPE_FILE:
-		f := _obj.Data.(QB_FileObject).File
+		f := _obj.Data.(FileObject).File
 		return f.ComputeHash()
 	default:
 		return ""
 	}
 }
-func (_obj *QB_Object) InvalidateHash() bool{
+func (_obj *Object) InvalidateHash() bool{
 	switch _obj.Type{
 	case TYPE_FILE:
-		f := _obj.Data.(QB_FileObject).File
+		f := _obj.Data.(FileObject).File
 		return f.InvalidateHash()
 	default:
 		return false
 	}
 }
 
-func (obj QB_Object)Key() string{
+func (obj Object)Key() string{
 	return obj.String()
 }
-func (obj QB_Object)CheckKey(key string) bool{
+func (obj Object)CheckKey(key string) bool{
 	return obj.String() == key
 }
 
-type QB_ObjectSet map[string]QB_Object
+type ObjectSet map[string]Object
 
-func (_set QB_ObjectSet) Has(_obj QB_Object) bool{
+func (_set ObjectSet) Has(_obj Object) bool{
 	if _set == nil{
 		return false
 	}
@@ -161,25 +161,25 @@ func (_set QB_ObjectSet) Has(_obj QB_Object) bool{
 	return r
 }
 
-func (_set *QB_ObjectSet) Update(_obj QB_Object) QB_ObjectSet{
+func (_set *ObjectSet) Update(_obj Object) ObjectSet{
 	if *_set == nil{
-		*_set = make(QB_ObjectSet)
+		*_set = make(ObjectSet)
 	}
 	(*_set)[_obj.Key()] = _obj
 	return *_set
 }
-func (_set *QB_ObjectSet) Remove(_obj QB_Object) QB_ObjectSet{
+func (_set *ObjectSet) Remove(_obj Object) ObjectSet{
 	if *_set == nil{
-		*_set = make(QB_ObjectSet)
+		*_set = make(ObjectSet)
 		return *_set
 	}
 	delete(*_set, _obj.Key())
 	return *_set
 }
 
-func (_set *QB_ObjectSet) Intersect(_objs QB_ObjectSet){
+func (_set *ObjectSet) Intersect(_objs ObjectSet){
 	if *_set == nil{
-		*_set = make(QB_ObjectSet)
+		*_set = make(ObjectSet)
 	}
 
 	for k, v := range _objs{
@@ -190,9 +190,9 @@ func (_set *QB_ObjectSet) Intersect(_objs QB_ObjectSet){
 		}
 	}
 }
-func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
+func (_set *ObjectSet) Merge(_objs ObjectSet){
 	if *_set == nil{
-		*_set = make(QB_ObjectSet)
+		*_set = make(ObjectSet)
 	}
 
 	for _, v := range _objs{
@@ -200,7 +200,7 @@ func (_set *QB_ObjectSet) Merge(_objs QB_ObjectSet){
 	}
 }
 
-func (_set *QB_ObjectSet) StringArray() (arr []string){
+func (_set *ObjectSet) StringArray() (arr []string){
 	for k := range *_set{
 		arr = append(arr, k)
 	}

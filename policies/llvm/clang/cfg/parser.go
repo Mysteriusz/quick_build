@@ -6,10 +6,10 @@ import(
 	"bytes"
 	"strings"
 
-	. "qb/io"
+	"qb/qbio"
 )
 
-type ClangVC_D struct{
+type DFile struct{
 	/*
 		All dependencies
 
@@ -17,7 +17,7 @@ type ClangVC_D struct{
 		[1] == .c
 		[2:] == .h
 	*/
-	Deps 	QB_FileArray
+	Deps 	qbio.FileArray
 }
 
 /*
@@ -29,8 +29,8 @@ type ClangVC_D struct{
 		- Slash-Back (0x5c)
 		- Colon (0x3a)
 */
-const CLANG_VC_D_TRIM = "\x09\x20\x5c\x3a"
-func ClangVCParseD(_file QB_File) (res bool, dep ClangVC_D){
+const D_TRIM = "\x09\x20\x5c\x3a"
+func ParseD(_file qbio.File) (res bool, dep DFile){
 	reader := bufio.NewReader(_file.GetFile())
 	defer _file.Save()
 
@@ -50,7 +50,7 @@ func ClangVCParseD(_file QB_File) (res bool, dep ClangVC_D){
 			continue
 		}
 
-		path := strings.Trim(buf.String(), CLANG_VC_D_TRIM)
+		path := strings.Trim(buf.String(), D_TRIM)
 
 		// Ignore the path if it`s not correct
 		stat, err := os.Stat(path)
@@ -58,7 +58,7 @@ func ClangVCParseD(_file QB_File) (res bool, dep ClangVC_D){
 			continue
 		}
 
-		dep.Deps = append(dep.Deps, QBInitFile(path))
+		dep.Deps = append(dep.Deps, qbio.InitFile(path))
 		buf.Reset()
 	}
 	if len(dep.Deps) < 2{

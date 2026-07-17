@@ -4,27 +4,30 @@ import(
 	"fmt"
 	"time"
 
-	. "qb/build"
-	. "qb/policies/maps/lookups"
-	. "qb/policies/vc"
+	"qb/build"
+	"qb/policies/vc"
+	"qb/policies/maps/lookups"
 )
 
-func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
+func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 	/*
 		Get the pipe
 	*/
 	pipe := _state.CurrentPipe()
 	if pipe == nil{
-		fmt.Println("Unable to get pipe at index: %i", _state.CurrentPipeIdx())
-		return
+		return qb.BuildError{}.New(
+			_state,
+			fmt.Sprintf("Unable to get pipe at index: %d", _state.CurrentPipeIdx()))
 	}
 
 	/*
 		Lookup and execute the policy
 	*/
-	policy, res := QBPolicyLookup(pipe.CommandPolicyAlias)
-	if !res{
-		return
+	policy, found := lookup.PolicyLookup(pipe.CommandPolicyAlias)
+	if !found{
+		return qb.BuildError{}.New(
+			_state,
+			fmt.Sprintf("Unsupported policy file alias: %s", pipe.CommandPolicyAlias))
 	}
 
 	fmt.Println("==================================")
@@ -44,7 +47,7 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 		Version control variables
 	*/
 	var vc_enabled bool = policy.GetCapabilities().VersionControl
-	var vc_state VC_FileState = VC_FileState{}
+	var vc_state vc.FileState = vc.FileState{}
 	var not_first_build, not_updated bool
 
 	/*
@@ -79,8 +82,8 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 			goto timer_end
 		}
 
-		// Link 'QB_BuildState' to 'VC_FileState' variables
-		VCLinkState(_state, &vc_state)
+		// Link '_BuildState' to 'VC_FileState' variables
+		vc.LinkState(_state, &vc_state)
 
 		/*
 			TODO
@@ -90,11 +93,10 @@ func ExecutePolicy(_state *QB_BuildState, _data any) (res bool){
 	}
 	
 	// Exexcute the policy
-	res = policy.Run(_state)
-	if !res{
-		fmt.Println("Policy execution has failed")
-		return
-	}
+	/*err = policy.Run(_state)
+	if err.Check(){
+		return err
+	}*/
 
 	/*
 		Save the version control state
@@ -125,7 +127,7 @@ timer_end:
 		policy.EndVersionControl(_state, &vc_state)
 
 		/*
-			Set 'QB_BuildState.WorkingSet'
+			Set '_BuildState.WorkingSet'
 			as the expected output of the pipe
 		*/
 		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
@@ -135,10 +137,10 @@ timer_end:
 	fmt.Println("Policy execution took: ", end.Sub(start))
 	println()
 
-	return true
+	return qb.BuildError{}.None()
 }
 
-func ExecuteFromState(_state *QB_BuildState) (res bool){
+func ExecuteFromState(_state *qb.BuildState) qb.BuildError{
 	return _state.IterPipes(ExecutePolicy, nil)
 }
 

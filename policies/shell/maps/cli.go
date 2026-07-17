@@ -1,19 +1,19 @@
-package shell
+package maps
 
 import(
 	"fmt"
 
-	. "qb/build"
-	. "qb/policies/shell/cfg"
-	. "qb/policies/shell/pwsh"
+	"qb/build"
+	"qb/policies/shell/cfg"
+	"qb/policies/shell/pwsh"
 )
 
-type Shell_ExecFunc func(*Shell_PolicyConfig, *QB_BuildState)(bool)
-var SHELL_FUNC_MAP = map[string]Shell_ExecFunc{
-	"powershell": PwshExecFromState,
+type ExecFunc func(*shell.PolicyConfig, *qb.BuildState)(bool)
+var SHELL_FUNC_MAP = map[string]ExecFunc{
+	"powershell": pwsh.ExecFromState,
 }
 
-func ShellCliFuncLookup(cli string)(exec Shell_ExecFunc, res bool){
+func CliFuncLookup(cli string)(exec ExecFunc, res bool){
 	exec, res = SHELL_FUNC_MAP[cli]
 	if !res{
 		fmt.Printf("CLI function not found: '%s'", cli)

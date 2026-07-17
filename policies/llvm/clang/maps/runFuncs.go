@@ -1,32 +1,32 @@
-package clang
+package maps
 
 import(
-	. "qb/build"
-	. "qb/policies/llvm/clang/run"
-	. "qb/policies/llvm/clang/cfg"
+	"qb/build"
+	"qb/policies/llvm/clang/run"
+	"qb/policies/llvm/clang/cfg"
 )
 
-var EXECUTE_FUNCS = map[string]func(*Clang_PolicyConfig, *QB_BuildState)(bool){
+var EXECUTE_FUNCS = map[string]func(*clang.PolicyConfig, *qb.BuildState)(bool){
 	"Compile": CompileExec,
 	"Link": LinkExec,
 }
 
 /*	
 
-	Execute compilation only for the QB_BuildState object`s
-	of the current QB_PipeEntry
+	Execute compilation only for the qb.BuildState object`s
+	of the current qb.PipeEntry
 
 INPUT:
 	NONE
 
 OUTPUT:
-	[]QB_Object with types: TYPE_FILE
+	[]qb.Object with types: TYPE_FILE
 
 */
-func CompileExec(_config *Clang_PolicyConfig, _state *QB_BuildState) (res bool){
+func CompileExec(_config *clang.PolicyConfig, _state *qb.BuildState) (res bool){
 	_state.ClearWorkingSet()
 
-	objects, res := ClangCompileFromState(_state)
+	objects, res := run.CompileFromState(_state)
 	if !res{
 		return false
 	}
@@ -38,8 +38,8 @@ func CompileExec(_config *Clang_PolicyConfig, _state *QB_BuildState) (res bool){
 
 /*	
 
-	Execute linking only for the QB_BuildState object`s
-	of the current QB_PipeEntry
+	Execute linking only for the qb.BuildState object`s
+	of the current qb.PipeEntry
 
 INPUT:
 	_state.WorkingSet types: TYPE_FILE
@@ -48,12 +48,12 @@ OUTPUT:
 	_state.WorkingSet types: TYPE_FILE
 
 */
-func LinkExec(_config *Clang_PolicyConfig, _state *QB_BuildState) (res bool){
+func LinkExec(_config *clang.PolicyConfig, _state *qb.BuildState) (res bool){
 	if _state == nil{
 		return
 	}
 	
-	out_set, res := ClangLinkFromState(_state, _config)
+	out_set, res := run.LinkFromState(_state, _config)
 	if !res{
 		return
 	}

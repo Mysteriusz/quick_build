@@ -1,11 +1,11 @@
-package policies
+package ar
 
 import(
-	. "qb/build"
-	. "qb/policies/vc"
+	"qb/build"
+	"qb/policies/vc"
 )
 
-func ArVCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState)(obj_diff VC_ObjectDiff){
+func Diff(_qb_state *qb.BuildState, _vc_state *vc.FileState)(obj_diff vc.ObjectDiff){
 	if _qb_state == nil || _vc_state == nil{
 		return
 	}

@@ -3,9 +3,9 @@ package run
 import(
 	"fmt"
 	
-	. "qb/io"
-	. "qb/build"
-	. "qb/policies/llvm/clang/cfg"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies/llvm/clang/cfg"
 )
 
 /*
@@ -28,7 +28,7 @@ import(
 			D:/source.c `
 			-o D:/my_ouptut.o `
 */
-func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res bool){
+func CompileFromState(_state *qb.BuildState) (out_set qb.ObjectSet, res bool){
 	if _state == nil{
 		return
 	}
@@ -42,31 +42,31 @@ func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res boo
 
 	// Write all Flags
 	args = append(args,
-		ClangWriteArgs("-", pipe.Flags)...
+		WriteArgs("-", pipe.Flags)...
 	)
 	
 	// Write all Definitions
 	args = append(args,
-		ClangWriteArgs("-D", pipe.Definitions)...
+		WriteArgs("-D", pipe.Definitions)...
 	)
 
 	// Write all Hooks
 	args = append(args,
-		ClangWriteArgs("-I", pipe.Hooks)...
+		WriteArgs("-I", pipe.Hooks)...
 	)
 
-	cmd := QBInitCommand(args, 0, 0)
+	cmd := qb.InitCommand(args, 0, 0)
 
 	/*
 		Command execution loop for every source file
 	*/
 	for _,src := range _state.GetSources().AllPaths(){
 		// Resolve output path for the current state
-		output_path := ChangeDirectory(
-			ChangeExtension(src, ".o"),
+		output_path := qbio.ChangeDirectory(
+			qbio.ChangeExtension(src, ".o"),
 			_state.Config.OutputDirectory)
 
-		output_dep := ChangeExtension(output_path, ".d")
+		output_dep := qbio.ChangeExtension(output_path, ".d")
 
 		/*
 			Configure the command
@@ -91,16 +91,16 @@ func ClangCompileFromState(_state *QB_BuildState) (out_set QB_ObjectSet, res boo
 			Initialize the QB_Object as the compiled file
 		*/
 		
-		obj,_ := QBInitObject(output_path, TYPE_FILE)
+		obj,_ := qb.InitObject(output_path, qb.TYPE_FILE)
 
 		/*
 			Write an extra field as the generated dependency and source files
 		*/
 
-		if !QBSetObjectExtra(&obj, CLANG_OUT_DEP, QBInitFile(output_dep)){
+		if !qb.SetObjectExtra(&obj, clang.OUT_DEP, qbio.InitFile(output_dep)){
 			fmt.Printf("Failed to write dependency file to object: %s", output_dep)
 		}
-		if !QBSetObjectExtra(&obj, CLANG_OUT_SRC, QBInitFile(src)){
+		if !qb.SetObjectExtra(&obj, clang.OUT_SRC, qbio.InitFile(src)){
 			fmt.Printf("Failed to write source file to object: %s", src)
 		}
 

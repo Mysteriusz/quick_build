@@ -10,12 +10,12 @@ FIELDS:
 
 */
 
-type Clang_PolicyConfig struct{
+type PolicyConfig struct{
 	Function	string 	`toml:"function"`
 	Vars		map[string]any `toml:"vars"`
 }
 
-const CLANG_OUT_DEP string = "dependency_file"
-const CLANG_OUT_SRC string = "source_file"
+const OUT_DEP string = "dependency_file"
+const OUT_SRC string = "source_file"
 
 

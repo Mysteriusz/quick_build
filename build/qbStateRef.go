@@ -1,4 +1,4 @@
-package build
+package qb
 
 /*
 	TODO:
@@ -11,47 +11,48 @@ import(
 	"strings"
 )
 
-type QB_RefVarKind uint8
+type RefVarKind uint8
 const(
-	REF_STRING QB_RefVarKind = iota
+	REF_STRING RefVarKind = iota
 	REF_PATHS 
 	REF_OBJECT
 )
-type QB_RefVar struct{
-	Kind 	QB_RefVarKind
+type RefVar struct{
+	Kind 	RefVarKind
 	Value 	[]string
 }
-var qb_EMPTY_REF = QB_RefVar{Kind: 0, Value: nil}
+var qb_EMPTY_REF = RefVar{Kind: 0, Value: nil}
 
-func QB_RefMapVar(_state *QB_BuildState, fld string) QB_RefVar{
+func RefMapVar(_state *BuildState, fld string) RefVar{
+
 	switch(fld){
 	case "STATE.WORKING_SET":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_STRING,
 			Value: _state.WorkingSet.StringArray(),
 		}
 	case "STATE.GET_SOURCES":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_PATHS,
 			Value: _state.GatherAllSources().AllPaths(),
 		}
 	case "STATE.GET_HEADERS":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_PATHS,
 			Value: _state.GatherAllHeaders().AllPaths(),
 		}
 	case "STATE.SOURCE_DIRECTORY":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_STRING,
 			Value: []string{_state.Config.SourceDirectory},
 		}
 	case "STATE.OUTPUT_DIRECTORY":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_STRING,
 			Value: []string{_state.Config.OutputDirectory},
 		}
 	case "STATE.NAME":
-		return QB_RefVar{
+		return RefVar{
 			Kind: REF_STRING,
 			Value: []string{_state.Config.Name},
 		}
@@ -63,7 +64,7 @@ func QB_RefMapVar(_state *QB_BuildState, fld string) QB_RefVar{
 /*
 	Resolve a single field
 */
-func QBRefConvertFld(_state *QB_BuildState, fld string) QB_RefVar{
+func RefConvertFld(_state *BuildState, fld string) RefVar{
 	if fld[0] != '{'{
 		return qb_EMPTY_REF
 	}
@@ -73,7 +74,7 @@ func QBRefConvertFld(_state *QB_BuildState, fld string) QB_RefVar{
 		return qb_EMPTY_REF
 	}
 
-	return QB_RefMapVar(_state, fld[1:idx])
+	return RefMapVar(_state, fld[1:idx])
 }
 
 /*
@@ -84,7 +85,7 @@ func QBRefConvertFld(_state *QB_BuildState, fld string) QB_RefVar{
 		- REF_PATHS -> " "
 		- REF_OBJECT -> " "
 */
-func QB_RefDelim(Kind QB_RefVarKind) string{
+func RefDelim(Kind RefVarKind) string{
 	switch(Kind){
 	case REF_STRING:
 		return ""
@@ -102,7 +103,7 @@ func QB_RefDelim(Kind QB_RefVarKind) string{
 /*
 	Resolve all references across the entire string
 */
-func QBRefResolve(_state *QB_BuildState, val string) (arr []QB_RefVar, res bool){
+func RefResolve(_state *BuildState, val string) (arr []RefVar, res bool){
 	idx := 0
 	skip := false
 	buf := ""
@@ -125,7 +126,7 @@ func QBRefResolve(_state *QB_BuildState, val string) (arr []QB_RefVar, res bool)
 			fld := val[idx:]
 
 			// Convert field in place
-			ref := QBRefConvertFld(_state, fld)
+			ref := RefConvertFld(_state, fld)
 			if ref.Value == nil{
 				return
 			}
@@ -148,7 +149,7 @@ func QBRefResolve(_state *QB_BuildState, val string) (arr []QB_RefVar, res bool)
 
 	if buf != ""{
 		if len(arr) == 0{
-			arr = append(arr, QB_RefVar{Kind: REF_STRING, Value: []string{buf}})
+			arr = append(arr, RefVar{Kind: REF_STRING, Value: []string{buf}})
 		}else{
 			// Append the gathered buffer
 			arr[len(arr) - 1].Value = append(arr[len(arr) - 1].Value, buf)
@@ -161,27 +162,27 @@ func QBRefResolve(_state *QB_BuildState, val string) (arr []QB_RefVar, res bool)
 /*
 	Merge all strings based on their kind
 
-	For example if 'QB_RefVar.Kind' == REF_STRING
-	the entire 'QB_RefVar.Value' will be 'joined'
+	For example if 'RefVar.Kind' == REF_STRING
+	the entire 'RefVar.Value' will be 'joined'
 	and separated with kind-based delimiter
 
-	The delimiter it defined by the function 'QB_RefDelim()'
+	The delimiter it defined by the function 'RefDelim()'
 
 	Example:
-		QB_RefVar.Value = []string{"D:/path", "/to/something"}
+		RefVar.Value = []string{"D:/path", "/to/something"}
 
 		the joined version would be:
 
-		QB_RefVar.Value = []string{"D:/path/to/something"}
+		RefVar.Value = []string{"D:/path/to/something"}
 */
-func QBRefMergeByKind(refs []QB_RefVar) (buf []string, res bool){
+func RefMergeByKind(refs []RefVar) (buf []string, res bool){
 	if refs == nil{
 		return
 	}
 
 	for _, ref := range refs{
 		if ref.Kind == REF_STRING{
-			temp := strings.Join(ref.Value, QB_RefDelim(ref.Kind))
+			temp := strings.Join(ref.Value, RefDelim(ref.Kind))
 			buf = append(buf, temp)
 		}else{
 			buf = slices.Concat(buf, ref.Value)

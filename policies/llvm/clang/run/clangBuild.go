@@ -3,10 +3,10 @@ package run
 import(
 	"path/filepath"
 
-	. "qb/build"
-	. "qb/io"
+	"qb/build"
+	"qb/qbio"
 )
-func ClangWriteArgs(_prefix string, _args[] string) (res_args []string){
+func WriteArgs(_prefix string, _args[] string) (res_args []string){
 	res_args = make([]string, len(_args))
 
 	for idx,arg := range _args{
@@ -16,12 +16,12 @@ func ClangWriteArgs(_prefix string, _args[] string) (res_args []string){
 	return res_args
 }
 
-func ClangToFileObject(_state *QB_BuildState, _path string) (obj_path string){
+func ToFileObject(_state *qb.BuildState, _path string) (obj_path string){
 	if _state == nil{
 		return
 	}
 
-	outname := filepath.Base(ChangeExtension(_path, ".o"))
+	outname := filepath.Base(qbio.ChangeExtension(_path, ".o"))
 	outfile := _state.Config.OutputDirectory + outname
 	return outfile
 }

@@ -1,4 +1,4 @@
-package policies
+package vc
 
 import(
 	"time"
@@ -7,11 +7,11 @@ import(
 	"io"
 	"encoding/json"
 
-	. "qb/io"
-	. "qb/build"
+	"qb/qbio"
+	"qb/build"
 )
 
-type VC_PolicyInt interface{
+type PolicyInt interface{
 	/*
 		Begin policy defined version check 
 		transaction on the build state object
@@ -21,11 +21,11 @@ type VC_PolicyInt interface{
 
 		IMPORTANT!
 		This should require 'GetCapabilities' to return an object
-		with field 'QB_Capabilities.VersionControl' == true
+		with field 'qb.Capabilities.VersionControl' == true
 
 		Else the not_updated value should always be 0 (false)
 	*/
-	BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, _vc_state VC_FileState)
+	BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, _vc_state FileState)
 	/*
 		Finish and save the version check transaction
 
@@ -34,79 +34,79 @@ type VC_PolicyInt interface{
 
 		IMPORTANT!
 		This should require 'GetCapabilities' to return an object
-		with field 'QB_Capabilities.VersionControl' == true
+		with field 'qb.Capabilities.VersionControl' == true
 	*/
-	EndVersionControl(_state *QB_BuildState, _vc_state *VC_FileState)
+	EndVersionControl(_state *qb.BuildState, _vc_state *FileState)
 }
 
-var VC_TIME_FORMAT string = "15:04:05 PM MST January 02/2006"
-var VC_FILE_NAME string = "VERSION_CONTROL.JSON"
+var TIME_FORMAT string = "15:04:05 PM MST January 02/2006"
+var FILE_NAME string = "VERSION_CONTROL.JSON"
 
-type VC_PipeIdx = uint32
-type VC_PipeStructure struct{
+type PipeIdx = uint32
+type PipeStructure struct{
 	/*
-		Computed by 'VCPipeUniqueId'
+		Computed by 'PipeUniqueId'
 	*/
 	Id 		string 		`json:"id"`
 
 	/*
-		Computed by 'VCStateUniqueHash'
+		Computed by 'StateUniqueHash'
 	*/
 	StateHash 	string 		`json:"state_hash"`
 	TimeStamp 	string 		`json:"timestamp"`
-	InWorkingSet 	QB_ObjectSet 	`json:"input_working_set"`
-	OutWorkingSet 	QB_ObjectSet 	`json:"output_working_set"`
-	SourceFiles	QB_FileArray	`json:"source_files"`
-	HeaderFiles	QB_FileArray	`json:"header_files"`
+	InWorkingSet 	qb.ObjectSet 	`json:"input_working_set"`
+	OutWorkingSet 	qb.ObjectSet 	`json:"output_working_set"`
+	SourceFiles	qbio.FileArray	`json:"source_files"`
+	HeaderFiles	qbio.FileArray	`json:"header_files"`
 }
 
-type VC_Structure struct{
+type Structure struct{
 	Iteration 	uint32 	`json:"iteration"`
 	FirstBuild 	string 	`json:"first_build"`
 	LastBuild 	string 	`json:"last_build"`
-	Pipes 		[]VC_PipeStructure	`json:"pipes"`
+	Pipes 		[]PipeStructure	`json:"pipes"`
 }
 
 // Version control file type
-type VC_File struct{
-	Structure 	VC_Structure 
-	QB_File
+type File struct{
+	Structure 	Structure 
+	qbio.File
 }
-func (_file *VC_File)PipeFromIdx(_idx VC_PipeIdx) *VC_PipeStructure{
+func (_file *File)PipeFromIdx(_idx PipeIdx) *PipeStructure{
 	return &_file.Structure.Pipes[_idx]
 }
 
-type VC_FileDiff struct{
-	Modified QB_FileArray // Includes both added and modified
-	Removed QB_FileArray
+type FileDiff struct{
+	Modified qbio.FileArray // Includes both added and modified
+	Removed qbio.FileArray
 }
-func (diff VC_FileDiff) Len() int{
+func (diff FileDiff) Len() int{
 	return len(diff.Modified) + len(diff.Removed)
 }
 
-type VC_ObjectDiff struct{
-	Modified QB_ObjectSet // Includes both added and modified
-	Removed QB_ObjectSet
+type ObjectDiff struct{
+	Modified qb.ObjectSet // Includes both added and modified
+	Removed qb.ObjectSet
 }
-func (diff VC_ObjectDiff) Len() int{
+func (diff ObjectDiff) Len() int{
 	return len(diff.Modified) + len(diff.Removed)
 }
 
-type VC_FileState struct{
-	File		VC_File
-	PipeIdx		VC_PipeIdx
-	DiffInput	VC_ObjectDiff
-	DiffOutput	VC_ObjectDiff
-	DiffSources 	VC_FileDiff
-	DiffHeaders	VC_FileDiff
+type FileState struct{
+	File		File
+	PipeIdx		PipeIdx
+	DiffInput	ObjectDiff
+	DiffOutput	ObjectDiff
+	DiffSources 	FileDiff
+	DiffHeaders	FileDiff
 }
 
-func (_file *VC_FileState)Pipe() *VC_PipeStructure{
+func (_file *FileState)Pipe() *PipeStructure{
 	return _file.File.PipeFromIdx(_file.PipeIdx)
 }
 
-func (_vc_file *VC_File) Save() (res bool){
-	defer _vc_file.QB_File.Save()
+func (_vc_file *File) Save() (res bool){
+	defer _vc_file.File.Save()
 
 	_vc_file.Clear()
 
@@ -114,9 +114,9 @@ func (_vc_file *VC_File) Save() (res bool){
 		Update version file metadata
 	*/
 	if _vc_file.Structure.Iteration == 0{
-		_vc_file.Structure.FirstBuild = VCTimeToFormat(time.Now())
+		_vc_file.Structure.FirstBuild = TimeToFormat(time.Now())
 	}
-	_vc_file.Structure.LastBuild = VCTimeToFormat(time.Now())
+	_vc_file.Structure.LastBuild = TimeToFormat(time.Now())
 	_vc_file.Structure.Iteration++
 
 	enc := json.NewEncoder(_vc_file.GetFile())
@@ -133,13 +133,13 @@ func (_vc_file *VC_File) Save() (res bool){
 }
 
 /*
-	Link the following values to the 'VC_FileState'
-		1) QB_BuildState.GetSources -> VC_FileState.DiffSources.Modified
-		2) QB_BuildState.GetHeaders -> VC_FileState.DiffHeaders.Modified
+	Link the following values to the 'FileState'
+		1) qb.BuildState.GetSources -> FileState.DiffSources.Modified
+		2) qb.BuildState.GetHeaders -> FileState.DiffHeaders.Modified
 */
-func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
-	_qb_state.GetHeaders = func ()(QB_FileArray){return _vc_state.DiffHeaders.Modified}
-	_qb_state.GetSources = func ()(QB_FileArray){return _vc_state.DiffSources.Modified}
+func LinkState(_qb_state *qb.BuildState, _vc_state *FileState){
+	_qb_state.GetHeaders = func ()(qbio.FileArray){return _vc_state.DiffHeaders.Modified}
+	_qb_state.GetSources = func ()(qbio.FileArray){return _vc_state.DiffSources.Modified}
 }
 
 /*
@@ -150,7 +150,7 @@ func VCLinkState(_qb_state *QB_BuildState, _vc_state *VC_FileState){
 	(Need some type of deletion control,
 	so that objects that were deleted are not hanging)
 */
-func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
+func (_vc_state *FileState)SetInputWorkingSet(_qb_state *qb.BuildState){
 	_vc_state.Pipe().InWorkingSet.Merge(_qb_state.WorkingSet)
 }
 
@@ -162,7 +162,7 @@ func (_vc_state *VC_FileState)SetInputWorkingSet(_qb_state *QB_BuildState){
 	(Need some type of deletion control,
 	so that objects that were deleted are not hanging)
 */
-func (_vc_state *VC_FileState)SetOutputWorkingSet(_qb_state *QB_BuildState){
+func (_vc_state *FileState)SetOutputWorkingSet(_qb_state *qb.BuildState){
 	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
 	for _, o := range _vc_state.DiffOutput.Removed{
 		_vc_state.Pipe().OutWorkingSet.Remove(o)
@@ -173,17 +173,17 @@ func (_vc_state *VC_FileState)SetOutputWorkingSet(_qb_state *QB_BuildState){
 	Find/Create the version control file,
 	and initialize the version control state object
 */
-func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state VC_FileState){
+func FindOrCreateState(_state *qb.BuildState) (not_first_build bool, vc_state FileState){
 	if _state == nil{
 		return
 	}
 
-	qb_file := QBInitFile(ChangeDirectory(VC_FILE_NAME, _state.Config.OutputDirectory))
+	qb_file := qbio.InitFile(qbio.ChangeDirectory(FILE_NAME, _state.Config.OutputDirectory))
 
 	// Create the version control file object 
-	vc_file := VC_File{
-		Structure: VC_Structure{},
-		QB_File: qb_file,
+	vc_file := File{
+		Structure: Structure{},
+		File: qb_file,
 	}
 
 	err := json.NewDecoder(qb_file.GetFile()).Decode(&vc_file.Structure)
@@ -195,38 +195,38 @@ func VCFindOrCreateState(_state *QB_BuildState) (not_first_build bool, vc_state 
 		return
 	}
 
-	existed, pipe_idx := VCLoadPipeLog(_state, &vc_file)
-	return existed, VC_FileState{
+	existed, pipe_idx := LoadPipeLog(_state, &vc_file)
+	return existed, FileState{
 		File: vc_file,
 		PipeIdx: pipe_idx,
 	}
 }
 
 /*
-	Gather all changed objects to 'VC_FileState' object
+	Gather all changed objects to 'FileState' object
 */
-func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool, not_crit_diff bool){
+func Diff(_qb_state *qb.BuildState, _vc_state *FileState) (not_diff bool, not_crit_diff bool){
 	if _qb_state == nil || _vc_state == nil{
 		return
 	}
 
 	// Source files diff
-	d1 := VCDiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
+	d1 := DiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
 	_vc_state.DiffSources = d1
 
 	// Header files diff
-	d2 := VCDiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
+	d2 := DiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
 	_vc_state.DiffHeaders = d2
 
 	// Input objects diff
-	d3 := VCDiffObjects(_qb_state.WorkingSet, _vc_state.Pipe().InWorkingSet)
+	d3 := DiffObjects(_qb_state.WorkingSet, _vc_state.Pipe().InWorkingSet)
 	_vc_state.DiffInput = d3
 
 	/*
 		Unique hash diff
 		(if this if false the rebuild has to happen for the entire build)
 	*/
-	d4 := (VCStateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
+	d4 := (StateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
 
 	/*
 		TODO:
@@ -239,19 +239,19 @@ func VCDiff(_qb_state *QB_BuildState, _vc_state *VC_FileState) (not_diff bool, n
 /*
 	Write a new pipe log
 */
-func VCNewPipeLog(_state *QB_BuildState, _vc_file *VC_File) (res bool, pipe_idx VC_PipeIdx){
+func NewPipeLog(_state *qb.BuildState, _vc_file *File) (res bool, pipe_idx PipeIdx){
 	if _state == nil{
 		return
 	}
 
-	entry := VC_PipeStructure{
-		Id: VCPipeUniqueId(_state),
+	entry := PipeStructure{
+		Id: PipeUniqueId(_state),
 		StateHash: "",
-		TimeStamp: VCTimeToFormat(time.Now()),
-		InWorkingSet: make(QB_ObjectSet),
-		OutWorkingSet: make(QB_ObjectSet),
-		HeaderFiles: make(QB_FileArray, 0),
-		SourceFiles: make(QB_FileArray, 0),
+		TimeStamp: TimeToFormat(time.Now()),
+		InWorkingSet: make(qb.ObjectSet),
+		OutWorkingSet: make(qb.ObjectSet),
+		HeaderFiles: make(qbio.FileArray, 0),
+		SourceFiles: make(qbio.FileArray, 0),
 	}
 
 	pipes := &_vc_file.Structure.Pipes
@@ -263,7 +263,7 @@ func VCNewPipeLog(_state *QB_BuildState, _vc_file *VC_File) (res bool, pipe_idx 
 /*
 	Search/Create and get reference to the pipe log 
 */
-func VCLoadPipeLog(_state *QB_BuildState, _vc_file *VC_File) (found bool, pipe_idx VC_PipeIdx){
+func LoadPipeLog(_state *qb.BuildState, _vc_file *File) (found bool, pipe_idx PipeIdx){
 	if _state == nil || _vc_file == nil{
 		return
 	}
@@ -271,14 +271,14 @@ func VCLoadPipeLog(_state *QB_BuildState, _vc_file *VC_File) (found bool, pipe_i
 	/*
 		Find pipe by unique state based ID
 	*/
-	id := VCPipeUniqueId(_state)
+	id := PipeUniqueId(_state)
 	for idx, pipe := range _vc_file.Structure.Pipes{
 		if pipe.Id == id{
 			return true, uint32(idx)
 		}
 	}
 
-	res, idx := VCNewPipeLog(_state, _vc_file)
+	res, idx := NewPipeLog(_state, _vc_file)
 	if !res{
 		panic("CLANG_POLICY: Version control failed to save the pipe log!!!")
 	}

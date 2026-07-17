@@ -4,19 +4,19 @@ import(
 	"fmt"
 	"slices"
 
-	. "qb/build"
-	. "qb/policies/shell/cfg"
+	"qb/build"
+	"qb/policies/shell/cfg"
 )
 
 
-func PwshExecFromState(_policy *Shell_PolicyConfig, _state *QB_BuildState) (res bool){
+func ExecFromState(_policy *shell.PolicyConfig, _state *qb.BuildState) (res bool){
 	if _policy == nil || _state == nil{
 		return false
 	}
 
-	var refs []QB_RefVar
+	var refs []qb.RefVar
 	for _, str := range _policy.Args{
-		temp, err := QBRefResolve(_state, str) 
+		temp, err := qb.RefResolve(_state, str) 
 		if !err{
 			fmt.Printf("Invalid string argument reference:\n '%s'\n", str)
 			return
@@ -32,13 +32,13 @@ func PwshExecFromState(_policy *Shell_PolicyConfig, _state *QB_BuildState) (res 
 	/*
 		Merge all strings based on their kind
 	*/
-	args, err := QBRefMergeByKind(refs)
+	args, err := qb.RefMergeByKind(refs)
 	if !err{
 		fmt.Println("Unable to merge reference variables.")
 		return
 	}
 	
-	cmd := QBInitCommand(args, 0, 0)
+	cmd := qb.InitCommand(args, 0, 0)
 	cmd.Exec = _state.CurrentPipe().Command
 	cmd.RunPowershell()
 

@@ -1,4 +1,4 @@
-package build
+package qb
 
 import(
 	"os"
@@ -11,7 +11,7 @@ import(
 	"qb/misc"
 )
 
-type QB_Command struct{
+type Command struct{
 	/*
 		Command line ordering
 		[Exec] [Args] [Input] [Output]
@@ -28,7 +28,7 @@ type QB_Command struct{
 	output		[]string
 }
 
-func QBInitCommand(_args []string, _input_idx int, _output_idx int) (cmd QB_Command){
+func InitCommand(_args []string, _input_idx int, _output_idx int) (cmd Command){
 	if _args == nil{
 		return
 	}
@@ -42,29 +42,29 @@ func QBInitCommand(_args []string, _input_idx int, _output_idx int) (cmd QB_Comm
 	return cmd
 }
 
-func (_cmd *QB_Command) SetInput(_input []string) *QB_Command{
+func (_cmd *Command) SetInput(_input []string) *Command{
 	_cmd.input = _input
 	return _cmd
 }
-func (_cmd *QB_Command) SetOutput(_output []string) *QB_Command{
+func (_cmd *Command) SetOutput(_output []string) *Command{
 	_cmd.output = _output
 	return _cmd
 }
 
-func (_cmd *QB_Command) AttachArgs(_args []string) *QB_Command{
+func (_cmd *Command) AttachArgs(_args []string) *Command{
 	_cmd.Args = slices.Concat(_cmd.Args, _args)
 	return _cmd
 }
-func (_cmd *QB_Command) AttachArgsFromIndex(_args []string, _idx int) *QB_Command{
+func (_cmd *Command) AttachArgsFromIndex(_args []string, _idx int) *Command{
 	_cmd.Args = slices.Insert(_cmd.Args, _idx, _args...)
 	return _cmd
 }
 
-func (_qb_cmd *QB_Command) GetCmd() (exec string, args []string){
+func (_qb_cmd *Command) GetCmd() (exec string, args []string){
 	/*
 		Check if executable string is set
 
-		If not assume that 'QB_Command.Args[0]' is the executable
+		If not assume that 'Command.Args[0]' is the executable
 	*/
 	offset := 0
 	exec = _qb_cmd.Exec
@@ -95,7 +95,7 @@ func (_qb_cmd *QB_Command) GetCmd() (exec string, args []string){
 
 	return exec, args
 }
-func (_qb_cmd QB_Command) Run() (res bool){
+func (_qb_cmd Command) Run() (res bool){
 	cmdline, args := _qb_cmd.GetCmd()
 
 	cmd := exec.Command(cmdline, args...)
@@ -122,13 +122,13 @@ func (_qb_cmd QB_Command) Run() (res bool){
 /*
 	TODO
 
-	Change to something like RunAs(QB_CommandShellKind)
+	Change to something like RunAs(CommandShellKind)
 	and use some predefined shells
 
 	IMPORTANT!!!
 	Args have to be compliant with the powershell syntax
 */
-func (_qb_cmd QB_Command) RunPowershell() (res bool){
+func (_qb_cmd Command) RunPowershell() (res bool){
 	exe, args := _qb_cmd.GetCmd()
 	cmdline := exe + " " + strings.Join(args, " ")
 

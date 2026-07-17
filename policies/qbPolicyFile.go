@@ -6,11 +6,11 @@ import(
 	"github.com/pelletier/go-toml/v2"
 )
 
-type QB_PolicyFile struct{
+type PolicyFile struct{
 	Policies 	map[string]any  	`toml:"Policies"`
 }
 
-func QBLoadPolicyFile(_policy QB_PolicyInfo) (file QB_PolicyFile, res bool){
+func LoadPolicyFile(_policy PolicyInfo) (file PolicyFile, res bool){
 	if _policy == nil{
 		return 
 	}
@@ -26,7 +26,7 @@ func QBLoadPolicyFile(_policy QB_PolicyInfo) (file QB_PolicyFile, res bool){
 
 	return file, true
 }
-func QBDecodePolicy[T any](_file QB_PolicyFile, _policy string) (dec T, res bool){
+func DecodePolicy[T any](_file PolicyFile, _policy string) (dec T, res bool){
 	payload, exists := _file.Policies[_policy]
 	if !exists{
 		fmt.Printf("Policy doesn`t exist: '%s'", _policy)

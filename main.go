@@ -13,7 +13,7 @@ import(
 
 func main(){
 	//cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/test.toml")
-	cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/cases.toml")
+	cfg, res := ConfigLoad("D:/ax_project/quick_build_new/cases.toml")
 	if !res{
 		return
 	}
@@ -27,11 +27,13 @@ func main(){
 		fmt.Printf("Pipeline length: %d\n", len(entry.Pipeline))
 		fmt.Println("=================================================")
 
-		state, res := QBInitBuild(entry)
-		if !res{
+		state, err := QBInitBuild(entry)
+		if err.Check(){
 			return
 		}
-		if !ExecuteFromState(&state){
+
+		err = ExecuteFromState(&state)
+		if err.Check(){
 			return
 		}
 	}

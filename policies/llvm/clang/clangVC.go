@@ -1,21 +1,21 @@
-package policies
+package clang
 
 import(
-	. "qb/io"
-	. "qb/build"
-	. "qb/policies/vc"
-	. "qb/policies/llvm/clang/vc"
+	"qb/qbio"
+	"qb/build"
+	"qb/policies/vc"
 
+	"qb/policies/llvm/clang/vc"
 	"qb/policies/llvm/clang/maps"
 )
 
-func ClangVCDiff(_policy *Clang_Policy, _qb_state *QB_BuildState, _vc_state *VC_FileState){
+func Diff(_policy *Policy, _qb_state *qb.BuildState, _vc_state *vc.FileState){
 	if _policy == nil || _qb_state == nil || _vc_state == nil{
 		return
 	}
 
 	cfg := _policy.GetConfig(_qb_state)
-	output_diff_func, res := clang.OUTPUT_DIFF_FUNCS[cfg.Function]
+	output_diff_func, res := maps.OUTPUT_DIFF_FUNCS[cfg.Function]
 	if !res{
 		return
 	}
@@ -30,7 +30,7 @@ func ClangVCDiff(_policy *Clang_Policy, _qb_state *QB_BuildState, _vc_state *VC_
 		Source diff
 	*/
 
-	src_diff := ClangVCDiffSources(_qb_state, _vc_state)
-	_vc_state.DiffSources.Modified = QBFileArrayUnion(_vc_state.DiffSources.Modified, src_diff.Modified)
+	src_diff := clang_vc.DiffSources(_qb_state, _vc_state)
+	_vc_state.DiffSources.Modified = qbio.FileArrayUnion(_vc_state.DiffSources.Modified, src_diff.Modified)
 }
 

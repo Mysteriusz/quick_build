@@ -1,4 +1,4 @@
-package policies
+package vc
 
 import(
 	"io"
@@ -9,20 +9,20 @@ import(
 	"encoding/hex"
 	"crypto/sha256"
 
-	. "qb/io"
-	. "qb/build"
+	"qb/qbio"
+	"qb/build"
 )
 
 /*
 	Compute pipe log hash based on the state
 
-	Computed fields of 'QB_BuildState' are:
+	Computed fields of 'qb.BuildState' are:
 		- CurrentPipe().PolicyName
 		- CurrentPipe().Definitions
 		- CurrentPipe().Hooks
 		- CurrentPipe().Flags
 */
-func VCStateUniqueHash(_state *QB_BuildState) string{
+func StateUniqueHash(_state *qb.BuildState) string{
 	if _state == nil{
 		return ""
 	}
@@ -47,15 +47,15 @@ func VCStateUniqueHash(_state *QB_BuildState) string{
 }
 
 /*
-	Compute pipe log identifier based on the QB_BuildState.CurrentPipeIdx()
+	Compute pipe log identifier based on the qb.BuildState.CurrentPipeIdx()
 
-	Computed fields of 'QB_BuildState' are:
+	Computed fields of 'qb.BuildState' are:
 		- CurrentPipe().Command
 		- CurrentPipe().CommandPolicyAlias
 		- CurrentPipe().CommandPolicyName
 		- CurrentPipeIdx()
 */
-func VCPipeUniqueId(_state *QB_BuildState) string{
+func PipeUniqueId(_state *qb.BuildState) string{
 	if _state == nil{
 		return ""
 	}
@@ -73,13 +73,13 @@ func VCPipeUniqueId(_state *QB_BuildState) string{
 /*
 	Check and return what files differ
 */
-func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff VC_FileDiff){
+func DiffFiles(_f1 qbio.FileArray, _f2 qbio.FileArray) (diff FileDiff){
 	if _f1 == nil || _f2 == nil{
 		return
 	}
 
 	count := make(map[string]uint32)
-	files := make(map[string]QB_File)
+	files := make(map[string]qbio.File)
 	s1 := make(map[string]bool)
 	s2 := make(map[string]bool)
 	for _, e := range _f1{
@@ -122,13 +122,13 @@ func VCDiffFiles(_f1 QB_FileArray, _f2 QB_FileArray) (diff VC_FileDiff){
 
 	return diff
 }
-func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff VC_ObjectDiff){
+func DiffObjects(_f1 qb.ObjectSet, _f2 qb.ObjectSet) (diff ObjectDiff){
 	if _f1 == nil || _f2 == nil{
 		return
 	}
 
 	count := make(map[string]uint32)
-	objs := make(map[string]QB_Object)
+	objs := make(map[string]qb.Object)
 	s1 := make(map[string]bool)
 	s2 := make(map[string]bool)
 	for k, e := range _f1{
@@ -180,7 +180,7 @@ func VCDiffObjects(_f1 QB_ObjectSet, _f2 QB_ObjectSet) (diff VC_ObjectDiff){
 }
 
 
-func VCTimeToFormat(_time time.Time) string{
-	return _time.Format(VC_TIME_FORMAT)
+func TimeToFormat(_time time.Time) string{
+	return _time.Format(TIME_FORMAT)
 }
 

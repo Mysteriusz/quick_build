@@ -1,30 +1,30 @@
-package policies
+package ar
 
 import(
 	"path/filepath"
 
-	. "qb/policies/vc"
-	. "qb/policies"
-	. "qb/build"
-	. "qb/io"
+	"qb/policies/vc"
+	"qb/policies"
+	"qb/build"
+	"qb/qbio"
 )
 
-type Ar_Policy struct{
+type Policy struct{
 	/*
 		Should never be modified
 	*/
 	PATH 		string // Has to start with '.' character
-	CAPS 		QB_Capabilities
+	CAPS 		policies.Capabilities
 
-	file 		QB_File
+	file 		qbio.File
 }
 
-func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
+func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
 	if _state == nil{
 		return false
 	}
 
-	res = ArRunFromState(_policy, _state)
+	res = RunFromState(_policy, _state)
 	if !res{
 		return
 	}
@@ -32,7 +32,7 @@ func (_policy *Ar_Policy) Run(_state *QB_BuildState) (res bool){
 	return true
 }
 
-func (_policy *Ar_Policy) GetFile() *QB_File{
+func (_policy *Policy) GetFile() *qbio.File{
 	if _policy.file.IsValid(){
 		return &_policy.file
 	}
@@ -46,10 +46,10 @@ func (_policy *Ar_Policy) GetFile() *QB_File{
 		panic("AR_POLICY: Unable to resolve relative path.")
 	}	
 
-	_policy.file = QBInitFile(abs)
+	_policy.file = qbio.InitFile(abs)
 	return &_policy.file
 }
-func (_policy *Ar_Policy) GetCapabilities() QB_Capabilities{
+func (_policy *Policy) GetCapabilities() policies.Capabilities{
 	return _policy.CAPS
 }
 
@@ -61,17 +61,17 @@ FIELDS:
 	'OutputName' -> ar-compatbile name of the output archive
 
 */
-type Ar_PolicyConfig struct{
+type PolicyConfig struct{
 	Mode		string 	`toml:"mode"`
 	OutputExt	string 	`toml:"output_ext"`
 	OutputName	string 	`toml:"output_name"`
 }
 
-func (_cfg *Ar_PolicyConfig)Execute(_state *QB_BuildState) (res bool){
+func (_cfg *PolicyConfig)Execute(_state *qb.BuildState) (res bool){
 
 /*	
 
-	Execute archive creation only for the QB_BuildState object`s
+	Execute archive creation only for the qb.BuildState object`s
 
 INPUT:
 	_state.WorkingSet with types: TYPE_FILE
@@ -80,11 +80,11 @@ INPUT:
 	_cfg.OutputName
 
 OUTPUT:
-	[]QB_Object with types: TYPE_FILE
+	[]qb.Object with types: TYPE_FILE
 
 */
 
-	objects, res := ArArchiveFromState(_cfg, _state)
+	objects, res := ArchiveFromState(_cfg, _state)
 	if !res{
 		return
 	}
@@ -101,7 +101,7 @@ OUTPUT:
 
 */
 
-func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_build bool, not_updated bool, vc_state VC_FileState){
+func (_policy *Policy) BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, vc_state vc.FileState){
 	if _state == nil{
 		return
 	}
@@ -113,7 +113,7 @@ func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_
 		Load/Create version control object
 		and load it`s diff
 	*/
-	not_first_build, vc_state = VCFindOrCreateState(_state)
+	not_first_build, vc_state = vc.FindOrCreateState(_state)
 
 	/*
 		AR EXCLUSIVE
@@ -122,19 +122,19 @@ func (_policy *Ar_Policy) BeginVersionControl(_state *QB_BuildState) (not_first_
 		and only calculates diff for input/output objects
 	*/
 	if not_first_build{
-		vc_state.DiffInput = VCDiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
-		vc_state.DiffOutput = ArVCDiff(_state, &vc_state)
+		vc_state.DiffInput = vc.DiffObjects(vc_state.Pipe().InWorkingSet, _state.WorkingSet)
+		vc_state.DiffOutput = Diff(_state, &vc_state)
 	}
-	no_hash_diff := (VCStateUniqueHash(_state) == vc_state.Pipe().StateHash)
+	no_hash_diff := (vc.StateUniqueHash(_state) == vc_state.Pipe().StateHash)
 
 	return not_first_build, no_hash_diff && len(vc_state.DiffInput.Modified) == 0 && len(vc_state.DiffOutput.Modified) == 0, vc_state
 }
-func (_policy *Ar_Policy) EndVersionControl(_qb_state *QB_BuildState, _vc_state *VC_FileState){
+func (_policy *Policy) EndVersionControl(_qb_state *qb.BuildState, _vc_state *vc.FileState){
 	if _qb_state == nil || _vc_state == nil{
 		return
 	}
 
-	_vc_state.Pipe().StateHash = VCStateUniqueHash(_qb_state)
+	_vc_state.Pipe().StateHash = vc.StateUniqueHash(_qb_state)
 
 	// Save to file
 	_vc_state.File.Save()

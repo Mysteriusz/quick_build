@@ -1,10 +1,10 @@
 package pwsh
 
 import(
-	. "qb/build"
+	"qb/build"
 )
 
-func PwshFormatAsString(ref *QB_RefVar){
+func PwshFormatAsString(ref *qb.RefVar){
 	if ref == nil{
 		return
 	}
@@ -17,7 +17,7 @@ func PwshFormatAsString(ref *QB_RefVar){
 		ref.Value[idx] = "\"" + ref.Value[idx] + "\""
 	}
 }
-func PwshFormatAsArray(ref *QB_RefVar){
+func PwshFormatAsArray(ref *qb.RefVar){
 	if ref == nil{
 		return
 	}
@@ -27,7 +27,7 @@ func PwshFormatAsArray(ref *QB_RefVar){
 	}
 
 	/*
-		Format the 'QB_RefVar.Value' 'edges' into 
+		Format the 'qb.RefVar.Value' 'edges' into 
 		powershell compliant array
 
 		Example:
@@ -48,18 +48,18 @@ func PwshFormatAsArray(ref *QB_RefVar){
 	}
 }
 
-func PwshFormatRef(ref *QB_RefVar){
+func PwshFormatRef(ref *qb.RefVar){
 	if ref == nil{
 		return
 	}
 
 	switch(ref.Kind){
-	case REF_PATHS:
+	case qb.REF_PATHS:
 		PwshFormatAsString(ref)
 		PwshFormatAsArray(ref)
-	case REF_STRING:
+	case qb.REF_STRING:
 		fallthrough
-	case REF_OBJECT:
+	case qb.REF_OBJECT:
 		fallthrough
 	default:
 		return
