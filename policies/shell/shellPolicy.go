@@ -1,72 +1,51 @@
 package shell
 
 import(
-	"path/filepath"
-
-	"qb/qbio"
 	"qb/build"
 	"qb/policies"
-	"qb/policies/vc"
 
 	"qb/policies/shell/cfg"
 	"qb/policies/shell/maps"
 )
 
-type Policy struct{
-	/*
-		Should never be modified
-	*/
-	PATH 		string // Has to start with '.' character
-	CAPS 		policies.Capabilities
-
-	file 		qbio.File
+type PolicyInfo struct{
+	base 		policies.PolicyFile
+	config		*shell.PolicyConfig
 }
 
-func (_policy Policy) GetCapabilities() policies.Capabilities{
-	return _policy.CAPS
-}
-func (_policy *Policy) GetFile() *qbio.File{
-	if _policy.file.IsValid(){
-		return &_policy.file
+const POLICY_FILE_PATH string = "./policies/llvm/shell.toml"
+
+func (_policy *PolicyInfo) GetCapabilities() policies.Capabilities{
+	return policies.Capabilities{
+		VersionControl: false,
 	}
-
-	if _policy.PATH[0] != '.'{
-		panic("CLANG_POLICY: invalid corrupted path.")
-	}
-
-	abs, err := filepath.Abs(_policy.PATH)
-	if err != nil{
-		panic("CLANG_POLICY: Unable to resolve relative path.")
-	}	
-
-	_policy.file = qbio.InitFile(abs)
-	return &_policy.file
 }
-
-func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
+func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
+	file, res := policies.LoadPolicyFile(POLICY_FILE_PATH)
+	if !res{
+		return nil
+	}
+	return &file
+}
+func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{
 	if _state == nil{
-		return
+		return qb.BuildError{}.NilArgument(_state)
 	}
 
-	// Get policy name
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
-	// Load the policy file
-	file, res := policies.LoadPolicyFile(_policy)
-	if !res{
-		return
-	}
-
 	// Find and decode the policy by name
-	cfg, res := policies.DecodePolicy[shell.PolicyConfig](file, policy_name)
+	cfg, res := policies.DecodeConfig[shell.PolicyConfig](_policy.base, policy_name)
 	if !res{
-		return
+		return qb.BuildError{}.New(_state,
+			"Unable to find policy by name: '%s'", policy_name)
 	}
 
 	// Lookup cli entry function
 	exec, res := maps.CliFuncLookup(cfg.Cli)
 	if !res{
-		return
+		return qb.BuildError{}.New(_state,
+			"Unsupported cli function: '%s'", cfg.Cli)
 	}
 
 	// Execute cli entry function
@@ -78,10 +57,4 @@ func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
 	================ VERSION CONTROL ================
 
 */
-
-func (_policy *Policy) BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, _vc_state vc.FileState){
-	return
-}
-func (_policy *Policy) EndVersionControl(_state *qb.BuildState, _vc_state *vc.FileState){
-}
 

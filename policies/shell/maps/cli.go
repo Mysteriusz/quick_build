@@ -8,7 +8,7 @@ import(
 	"qb/policies/shell/pwsh"
 )
 
-type ExecFunc func(*shell.PolicyConfig, *qb.BuildState)(bool)
+type ExecFunc func(*shell.PolicyConfig, *qb.BuildState) qb.BuildError
 var SHELL_FUNC_MAP = map[string]ExecFunc{
 	"powershell": pwsh.ExecFromState,
 }

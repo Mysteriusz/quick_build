@@ -1,10 +1,6 @@
 package clang
 
 import(
-	"path/filepath"
-
-	"qb/misc"
-	"qb/qbio"
 	"qb/build"
 	"qb/policies"
 	"qb/policies/vc"
@@ -13,66 +9,59 @@ import(
 	"qb/policies/llvm/clang/cfg"
 )
 
-type Policy struct{
-	/*
-		Should never be modified
-	*/
-	PATH 		string // Has to start with '.' character
-	CAPS 		policies.Capabilities
-
-	file 		qbio.File
-	config		*clang.PolicyConfig
+type PolicyInfo struct{
+	base 		policies.PolicyFile
+	vc.SourceDiffProvider
 }
 
-func (_policy *Policy) GetConfig(_state *qb.BuildState) *clang.PolicyConfig{
-	if _policy.config != nil{
-		return _policy.config
+const POLICY_FILE_PATH string = "./policies/llvm/clang.toml"
+func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
+	if _policy.base.File.IsOpen(){
+		return &_policy.base
 	}
 
-	// Get the policy name to execute
+	file, res := policies.LoadPolicyFile(POLICY_FILE_PATH)
+	if !res{
+		println(POLICY_FILE_PATH)
+		panic("Corrupted policy file")
+	}
+
+	_policy.base = file
+	return &_policy.base
+}
+func (_policy PolicyInfo) GetCapabilities() policies.Capabilities{
+	return policies.Capabilities{
+		VersionControl: true,
+	}
+}
+
+func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{
+	if _state == nil{
+		return qb.BuildError{}.NilArgument(_state)
+	}
+
 	policy_name := _state.CurrentPipe().CommandPolicyName
 
-	// Load the policy file
-	file, res := policies.LoadPolicyFile(_policy)
+	cfg, res := policies.DecodeConfig[clang.PolicyConfig](_policy.base, policy_name)
 	if !res{
-		return nil
+		return qb.BuildError{}.New(_state,
+			"Unable to find policy by name: '%s'", policy_name)
 	}
 
-	// Lookup named policy and execute
-	cfg, res := policies.DecodePolicy[clang.PolicyConfig](file, policy_name)
-	if !res{
-		return nil
-	}
-	
-	_policy.config = &cfg
-	return _policy.config
-}
-
-func (_policy *Policy) Run(_state *qb.BuildState) (res bool){
-	if _state == nil{
-		return false
-	}
-
-	cfg := _policy.GetConfig(_state)
-	if cfg == nil{
-		return
-	}
-
+	// Lookup execute function for the function
 	exec, res := maps.EXECUTE_FUNCS[cfg.Function]
 	if !res{
-		return
+		return qb.BuildError{}.New(_state,
+			"Unsupported execution function: '%s'", cfg.Function)
 	}
 
-	res = exec(cfg, _state)
+	res = exec(&cfg, _state)
 	if !res{
-		return
+		return qb.BuildError{}.New(_state,
+			"Unsupported execution function: '%s'", cfg.Function)
 	}
 
-	return true
-}
-
-func (_policy *Policy) GetCapabilities() policies.Capabilities{
-	return _policy.CAPS
+	return qb.BuildError{}.None()
 }
 
 /*
@@ -81,81 +70,37 @@ func (_policy *Policy) GetCapabilities() policies.Capabilities{
 
 */
 
-func (_policy *Policy) BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, vc_state vc.FileState){
-	if _state == nil{
-		return
-	}
-	if !_policy.GetCapabilities().VersionControl{
-		return
-	}
-
-	/*
-		Load/Create version control object
-		and load it`s diff
-	*/
-	not_first_build, vc_state = vc.FindOrCreateState(_state)
-	no_diff, no_crit_diff := vc.Diff(_state, &vc_state)
-	
-	/*
-		If critical diff is present,
-		then act as a complete rebuild
-	*/
-	not_first_build = not_first_build && no_crit_diff
-
-	/*
-		CLANG EXCLUSIVE
-
-		Update diff source files for clang 
-		(Only when the build already exist since it requires vc.FileState.OutWorkingSet)
-	*/
-	if not_first_build{
-		Diff(_policy, _state, &vc_state)
+func (_policy *PolicyInfo) ComputeHeaderDiff(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.FileDiff, qb.BuildError){
+	policy_name := _qb_state.CurrentPipe().CommandPolicyName
+	cfg, res := policies.DecodeConfig[clang.PolicyConfig](_policy.base, policy_name)
+	if !res{
+		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unable to find policy by name: '%s'", policy_name)
 	}
 
-	if vc_state.DiffHeaders.Len() > 0{
-		println()
-		println("==================================HDR DIFF==================================")
-		misc.PrintArray(vc_state.DiffHeaders.Modified.AllPaths())
-		misc.PrintArray(vc_state.DiffHeaders.Removed.AllPaths())
-		println()
-	}
-	if vc_state.DiffSources.Len() > 0{
-		println()
-		println("==================================SRC DIFF==================================")
-		misc.PrintArray(vc_state.DiffSources.Modified.AllPaths())
-		misc.PrintArray(vc_state.DiffSources.Removed.AllPaths())
-		println()
+	diff_func, found := maps.DIFF_HDR_PROVIDERS[cfg.Function]
+	if !found || diff_func == nil{
+		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unsupported header provider for the function: '%s'", cfg.Function)
 	}
 
-	return not_first_build, no_diff && vc_state.DiffSources.Len() == 0, vc_state
-}
-func (_policy *Policy) EndVersionControl(_qb_state *qb.BuildState, _vc_state *vc.FileState){
-	if _qb_state == nil{
-		return
-	}
-	
-	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
-	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
-	_vc_state.Pipe().StateHash = vc.StateUniqueHash(_qb_state)
-
-	// Save to file
-	_vc_state.File.Save()
+	return diff_func(_qb_state, _vc_state)
 }
 
-func (_policy *Policy) GetFile() *qbio.File{
-	if _policy.file.IsValid(){
-		return &_policy.file
+func (_policy *PolicyInfo) ComputeSourceDiff(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.FileDiff, qb.BuildError){
+	policy_name := _qb_state.CurrentPipe().CommandPolicyName
+	cfg, res := policies.DecodeConfig[clang.PolicyConfig](_policy.base, policy_name)
+	if !res{
+		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unable to find policy by name: '%s'", policy_name)
 	}
 
-	if _policy.PATH[0] != '.'{
-		panic("CLANG_POLICY: invalid corrupted path.")
+	diff_func, found := maps.DIFF_SRC_PROVIDERS[cfg.Function]
+	if !found || diff_func == nil{
+		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unsupported source provider for the function: '%s'", cfg.Function)
 	}
 
-	abs, err := filepath.Abs(_policy.PATH)
-	if err != nil{
-		panic("CLANG_POLICY: Unable to resolve relative path.")
-	}	
-
-	_policy.file = qbio.InitFile(abs)
-	return &_policy.file
+	return diff_func(_qb_state, _vc_state)
 }
+

@@ -29,7 +29,7 @@ type DFile struct{
 		- Slash-Back (0x5c)
 		- Colon (0x3a)
 */
-const D_TRIM = "\x09\x20\x5c\x3a"
+const d_TRIM = "\x09\x20\x5c\x3a"
 func ParseD(_file qbio.File) (res bool, dep DFile){
 	reader := bufio.NewReader(_file.GetFile())
 	defer _file.Save()
@@ -50,7 +50,7 @@ func ParseD(_file qbio.File) (res bool, dep DFile){
 			continue
 		}
 
-		path := strings.Trim(buf.String(), D_TRIM)
+		path := strings.Trim(buf.String(), d_TRIM)
 
 		// Ignore the path if it`s not correct
 		stat, err := os.Stat(path)

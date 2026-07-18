@@ -6,7 +6,15 @@ import(
 	"qb/policies/llvm/clang/vc"
 )
 
-var OUTPUT_DIFF_FUNCS = map[string]func(*qb.BuildState, *vc.FileState)(vc.ObjectDiff){
+var DIFF_HDR_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.FileDiff, qb.BuildError){
+	"Compile": clang_vc.DiffHeaders,
+	"Link": nil,
+}
+var DIFF_SRC_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.FileDiff, qb.BuildError){
+	"Compile": clang_vc.DiffSources,
+	"Link": nil,
+}
+var DIFF_OUT_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.ObjectDiff, qb.BuildError){
 	"Compile": clang_vc.DiffOutForAll,
 	"Link": clang_vc.DiffOutForAny,
 }

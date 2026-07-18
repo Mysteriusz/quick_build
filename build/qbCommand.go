@@ -2,7 +2,6 @@ package qb
 
 import(
 	"os"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -111,8 +110,6 @@ func (_qb_cmd Command) Run() (res bool){
 	// Execute the command
 	err := cmd.Run()
 	if err != nil{
-		fmt.Println("Error occurend when execution specified command.")
-		fmt.Println(err)
 		return
 	}
 
@@ -144,8 +141,6 @@ func (_qb_cmd Command) RunPowershell() (res bool){
 	// Execute the command
 	err := cmd.Run()
 	if err != nil{
-		fmt.Println("Error occured when execution specified command.")
-		fmt.Println(err)
 		return
 	}
 

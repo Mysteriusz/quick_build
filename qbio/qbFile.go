@@ -169,18 +169,21 @@ func (_file *File) Clear(){
 	_file.file.Truncate(0)
 	_file.file.Seek(0, 0)
 }
-func (_file File) IsValid() (res bool){
+func (_file File) IsValid() bool{
 	stat, err := os.Lstat(_file.FullPath)
 	if err != nil{
-		return
+		return false
 	}
 
 	// Config cannot be a directory
 	if stat.IsDir(){
-		return
+		return false
 	}
 
 	return true
+}
+func (_file File) IsOpen() bool{
+	return _file.file != nil
 }
 
 func ChangeExtension(_path string, _ext string) string{
@@ -215,6 +218,14 @@ func NormalizePath(_path string) string{
 }
 
 type FileArray []File
+func (_farray *FileArray) Remove(_file File){
+	for idx,file := range *_farray{
+		if file.FullPath == _file.FullPath{
+			*_farray = append((*_farray)[:idx], (*_farray)[idx + 1:]...)
+			return
+		}
+	}
+}
 
 func (_farray FileArray) AllPaths() []string{
 	return misc.Select[File, string](
@@ -236,7 +247,6 @@ func (_farray FileArray) AllInvalid() (invalid []File){
 	}
 	return
 }
-
 
 func FileArrayUnion(_a ...FileArray) (array FileArray){
 	seen := make(map[string]bool)

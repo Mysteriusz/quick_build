@@ -29,7 +29,7 @@ func (_state *BuildState) Restore(){
 	_state.GetHeaders = _state.GatherAllHeaders
 }
 
-func QBInitBuild(_cfg configs.ConfigEntry) (BuildState, BuildError){
+func InitBuild(_cfg configs.ConfigEntry) (BuildState, BuildError){
 	state := BuildState{}
 	state.Restore()
 

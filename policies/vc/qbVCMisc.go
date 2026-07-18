@@ -70,6 +70,44 @@ func PipeUniqueId(_state *qb.BuildState) string{
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+func DiffNewFiles(_f1 qbio.FileArray, _f2 qbio.FileArray) (arr qbio.FileArray){
+	if _f1 == nil || _f2 == nil{
+		return
+	}
+
+	dup := make(map[string]bool)
+	files := make(map[string]qbio.File)
+	s1 := make(map[string]bool)
+	s2 := make(map[string]bool)
+	for _, e := range _f1{
+		if !s1[e.FullPath]{
+			files[e.FullPath] = e
+			s1[e.FullPath] = true
+		}
+	}
+
+	for _, e := range _f2{
+		if !s2[e.FullPath]{
+			_, r := files[e.FullPath]
+			if !r{
+				dup[e.FullPath] = false
+				files[e.FullPath] = e
+			}else{
+				dup[e.FullPath] = true
+			}
+			s2[e.FullPath] = true
+		}
+	}
+
+	for k, v := range dup{
+		if !v{
+			arr = append(arr, files[k])
+		}
+	}
+	
+	return arr
+}
+
 /*
 	Check and return what files differ
 */

@@ -11,32 +11,17 @@ import(
 	"qb/build"
 )
 
-type PolicyInt interface{
-	/*
-		Begin policy defined version check 
-		transaction on the build state object
-
-		The function should but isn`t required to check
-		for Version control capability of it`s policy info
-
-		IMPORTANT!
-		This should require 'GetCapabilities' to return an object
-		with field 'qb.Capabilities.VersionControl' == true
-
-		Else the not_updated value should always be 0 (false)
-	*/
-	BeginVersionControl(_state *qb.BuildState) (not_first_build bool, not_updated bool, _vc_state FileState)
-	/*
-		Finish and save the version check transaction
-
-		The function should but isn`t required to check
-		for Version control capability of it`s policy info
-
-		IMPORTANT!
-		This should require 'GetCapabilities' to return an object
-		with field 'qb.Capabilities.VersionControl' == true
-	*/
-	EndVersionControl(_state *qb.BuildState, _vc_state *FileState)
+type SourceDiffProvider interface{
+	ComputeSourceDiff(_qb_state *qb.BuildState, _vc_state *FileState) (FileDiff, qb.BuildError)
+}
+type HeaderDiffProvider interface{
+	ComputeHeaderDiff(_qb_state *qb.BuildState, _vc_state *FileState) (FileDiff, qb.BuildError)
+}
+type InputDiffProvider interface{
+	OutputInputDiff(_qb_state *qb.BuildState, _vc_state *FileState) (ObjectDiff, qb.BuildError)
+}
+type OutputDiffProvider interface{
+	ComputeOutputDiff(_qb_state *qb.BuildState, _vc_state *FileState) (ObjectDiff, qb.BuildError)
 }
 
 var TIME_FORMAT string = "15:04:05 PM MST January 02/2006"
@@ -68,11 +53,11 @@ type Structure struct{
 }
 
 // Version control file type
-type File struct{
+type VCFile struct{
 	Structure 	Structure 
 	qbio.File
 }
-func (_file *File)PipeFromIdx(_idx PipeIdx) *PipeStructure{
+func (_file *VCFile)PipeFromIdx(_idx PipeIdx) *PipeStructure{
 	return &_file.Structure.Pipes[_idx]
 }
 
@@ -93,7 +78,7 @@ func (diff ObjectDiff) Len() int{
 }
 
 type FileState struct{
-	File		File
+	File		VCFile
 	PipeIdx		PipeIdx
 	DiffInput	ObjectDiff
 	DiffOutput	ObjectDiff
@@ -101,13 +86,32 @@ type FileState struct{
 	DiffHeaders	FileDiff
 }
 
-func (_file *FileState)Pipe() *PipeStructure{
-	return _file.File.PipeFromIdx(_file.PipeIdx)
+func (_vc_state *FileState)Pipe() *PipeStructure{
+	return _vc_state.File.PipeFromIdx(_vc_state.PipeIdx)
+}
+func (_vc_state *FileState) Save() (res bool){
+	/*
+		Update source files
+	*/
+	_vc_state.Pipe().SourceFiles = qbio.FileArrayUnion(_vc_state.Pipe().SourceFiles, _vc_state.DiffSources.Modified)
+	for _, f := range _vc_state.DiffSources.Removed{
+		_vc_state.Pipe().SourceFiles.Remove(f)
+	}
+
+	/*
+		Update header files
+	*/
+	_vc_state.Pipe().HeaderFiles = qbio.FileArrayUnion(_vc_state.Pipe().HeaderFiles, _vc_state.DiffHeaders.Modified)
+	for _, f := range _vc_state.DiffHeaders.Removed{
+		_vc_state.Pipe().HeaderFiles.Remove(f)
+	}
+
+	return _vc_state.File.Save()
 }
 
-func (_vc_file *File) Save() (res bool){
-	defer _vc_file.File.Save()
 
+func (_vc_file *VCFile) Save() (res bool){
+	defer _vc_file.File.Save()
 	_vc_file.Clear()
 
 	/*
@@ -137,7 +141,7 @@ func (_vc_file *File) Save() (res bool){
 		1) qb.BuildState.GetSources -> FileState.DiffSources.Modified
 		2) qb.BuildState.GetHeaders -> FileState.DiffHeaders.Modified
 */
-func LinkState(_qb_state *qb.BuildState, _vc_state *FileState){
+func LinkToBuildState(_qb_state *qb.BuildState, _vc_state *FileState){
 	_qb_state.GetHeaders = func ()(qbio.FileArray){return _vc_state.DiffHeaders.Modified}
 	_qb_state.GetSources = func ()(qbio.FileArray){return _vc_state.DiffSources.Modified}
 }
@@ -173,7 +177,7 @@ func (_vc_state *FileState)SetOutputWorkingSet(_qb_state *qb.BuildState){
 	Find/Create the version control file,
 	and initialize the version control state object
 */
-func FindOrCreateState(_state *qb.BuildState) (not_first_build bool, vc_state FileState){
+func InitState(_state *qb.BuildState) (not_first_build bool, vc_state FileState){
 	if _state == nil{
 		return
 	}
@@ -181,7 +185,7 @@ func FindOrCreateState(_state *qb.BuildState) (not_first_build bool, vc_state Fi
 	qb_file := qbio.InitFile(qbio.ChangeDirectory(FILE_NAME, _state.Config.OutputDirectory))
 
 	// Create the version control file object 
-	vc_file := File{
+	vc_file := VCFile{
 		Structure: Structure{},
 		File: qb_file,
 	}
@@ -239,7 +243,7 @@ func Diff(_qb_state *qb.BuildState, _vc_state *FileState) (not_diff bool, not_cr
 /*
 	Write a new pipe log
 */
-func NewPipeLog(_state *qb.BuildState, _vc_file *File) (res bool, pipe_idx PipeIdx){
+func NewPipeLog(_state *qb.BuildState, _vc_file *VCFile) (res bool, pipe_idx PipeIdx){
 	if _state == nil{
 		return
 	}
@@ -263,7 +267,7 @@ func NewPipeLog(_state *qb.BuildState, _vc_file *File) (res bool, pipe_idx PipeI
 /*
 	Search/Create and get reference to the pipe log 
 */
-func LoadPipeLog(_state *qb.BuildState, _vc_file *File) (found bool, pipe_idx PipeIdx){
+func LoadPipeLog(_state *qb.BuildState, _vc_file *VCFile) (found bool, pipe_idx PipeIdx){
 	if _state == nil || _vc_file == nil{
 		return
 	}

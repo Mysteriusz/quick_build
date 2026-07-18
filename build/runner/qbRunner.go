@@ -5,11 +5,74 @@ import(
 	"time"
 
 	"qb/build"
+	"qb/policies"
 	"qb/policies/vc"
-	"qb/policies/maps/lookups"
+	"qb/policies/maps"
 )
 
+/*
+	IMPORTANT!
+	Diff compute happens in the following order
+
+	1) vc.HeaderDiffProvider
+	2) vc.SourceDiffProvider
+	3) vc.InputDiffProvider
+	4) vc.OutputDiffProvider
+
+	Executes all providers that mutate 'vc.FileState'
+	based on how they operate	
+*/
+func RunVCProviders(
+	_policy policies.PolicyInfoInt,
+	_qb_state *qb.BuildState,
+	_vc_state *vc.FileState,
+) qb.BuildError{
+	if _policy == nil || _vc_state == nil || _qb_state == nil{
+		return qb.BuildError{}.NilArgument(_qb_state)
+	}	
+
+	/*
+		Execute the header diff provider
+	*/
+	if prov, use := _policy.(vc.HeaderDiffProvider); use{
+		diff, err := prov.ComputeHeaderDiff(_qb_state, _vc_state)
+		if err.Check(){
+			return err
+		}
+		_vc_state.DiffHeaders = diff
+	}
+
+	/*
+		Execute the source diff provider
+	*/
+	if prov, use := _policy.(vc.SourceDiffProvider); use{
+		diff, err := prov.ComputeSourceDiff(_qb_state, _vc_state)
+		if err.Check(){
+			return err
+		}
+		_vc_state.DiffSources = diff
+	}
+
+	println("Header Diff")
+	println("REMOVED")
+	println(len(_vc_state.DiffHeaders.Removed))
+	println("MODIFIED")
+	println(len(_vc_state.DiffHeaders.Modified))
+	println()
+	println("Source Diff")
+	println("REMOVED")
+	println(len(_vc_state.DiffSources.Removed))
+	println("MODIFIED")
+	println(len(_vc_state.DiffSources.Modified))
+
+	return qb.BuildError{}.None()
+}
+
 func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
+	if _state == nil{
+		return qb.BuildError{}.NilArgument(_state)
+	}
+
 	/*
 		Get the pipe
 	*/
@@ -23,7 +86,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 	/*
 		Lookup and execute the policy
 	*/
-	policy, found := lookup.PolicyLookup(pipe.CommandPolicyAlias)
+	policy, found := maps.POLICY_INFO_LOOKUP[pipe.CommandPolicyAlias]
 	if !found{
 		return qb.BuildError{}.New(
 			_state,
@@ -32,7 +95,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 	fmt.Println("==================================")
 	fmt.Println("POLICY INFO")
-	fmt.Println("Policy file path: ", policy.GetFile().FullPath)
+	fmt.Println("Policy file path: ", policy.GetFile().File.FullPath)
 	fmt.Println("Policy file alias: ", _state.CurrentPipe().CommandPolicyAlias)
 	fmt.Println("Policy name: ", _state.CurrentPipe().CommandPolicyName)
 	fmt.Println("==================================")
@@ -47,91 +110,40 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 		Version control variables
 	*/
 	var vc_enabled bool = policy.GetCapabilities().VersionControl
-	var vc_state vc.FileState = vc.FileState{}
-	var not_first_build, not_updated bool
+	var vc_state vc.FileState
+
+	var not_first_build bool
 
 	/*
-		Execute a version control check of the policy info
-		and ignore if it was successfull
 	*/
 	if vc_enabled{
 		/*
- 			Perform the version control scan
-
-			Check for diffs, and their importance
-			and return the information and the VC_FileState
-
-			Load the diffs to the 'VC_FileState' object
-			to allow further vc setups before running
+			Initialize the FileState
 		*/
-		not_first_build, not_updated, vc_state = policy.BeginVersionControl(_state)
+		not_first_build, vc_state = vc.InitState(_state)
 
 		/*
- 			Force a full rebuild
+			Set as first build if rebuild requested
 		*/
-		if pipe.AlwaysRebuild{
-			not_first_build = false
+		not_first_build = not_first_build && pipe.AlwaysRebuild
+
+		err := RunVCProviders(policy, _state, &vc_state)
+		if err.Check(){
+			return err
 		}
 
-		/*
-			Move finish the current build
-			(nothing has changed)
-		*/
-		if not_first_build && not_updated{
-			vc_state.File.Save()
-			goto timer_end
-		}
-
-		// Link '_BuildState' to 'VC_FileState' variables
-		vc.LinkState(_state, &vc_state)
-
-		/*
-			TODO
-			Im not sure this will work correctly when inputs change
-		*/
-		vc_state.SetInputWorkingSet(_state)
+		vc.LinkToBuildState(_state, &vc_state)
 	}
-	
-	// Exexcute the policy
-	/*err = policy.Run(_state)
-	if err.Check(){
-		return err
-	}*/
 
-	/*
-		Save the version control state
-	*/
+	policy.Run(_state)
+
 	if vc_enabled{
-		/*
-			Merge expected output with output that was produced
-
-			This ensures that even when 2 new files were added
-			and 30 were already in the expected output
-			32 are actually saved
-		*/
 		vc_state.SetOutputWorkingSet(_state)
+		vc_state.Save()
 	}
 
 	// End execution timer
-timer_end:
 	end := time.Now()
-
-	/*
-		Load the working set with expected output
-	*/
-	if vc_enabled{
-		/*
-			Finish the version control by saving policy-specific variables
-			and the version control file
-		*/
-		policy.EndVersionControl(_state, &vc_state)
-
-		/*
-			Set '_BuildState.WorkingSet'
-			as the expected output of the pipe
-		*/
-		_state.LoadWorkingSet(vc_state.Pipe().OutWorkingSet)
-	}
 
 	fmt.Println("Output working set entries: ", len(_state.WorkingSet))
 	fmt.Println("Policy execution took: ", end.Sub(start))

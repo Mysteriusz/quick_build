@@ -3,9 +3,9 @@ package main
 import(
 	"fmt"
 
-	. "qb/configs"
-	. "qb/build"
-	. "qb/build/runner"
+	"qb/configs"
+	"qb/build"
+	"qb/build/runner"
 	/*"qb/misc"
 	. "qb/io"
 	. "qb/policies/vc"*/
@@ -13,7 +13,7 @@ import(
 
 func main(){
 	//cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/test.toml")
-	cfg, res := ConfigLoad("D:/ax_project/quick_build_new/cases.toml")
+	cfg, res := configs.ConfigLoad("D:/ax_project/quick_build_new/cases.toml")
 	if !res{
 		return
 	}
@@ -27,12 +27,12 @@ func main(){
 		fmt.Printf("Pipeline length: %d\n", len(entry.Pipeline))
 		fmt.Println("=================================================")
 
-		state, err := QBInitBuild(entry)
+		state, err := qb.InitBuild(entry)
 		if err.Check(){
 			return
 		}
 
-		err = ExecuteFromState(&state)
+		err = runner.ExecuteFromState(&state)
 		if err.Check(){
 			return
 		}
