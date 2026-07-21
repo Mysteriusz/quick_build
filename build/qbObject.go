@@ -176,6 +176,21 @@ func (_set *ObjectSet) Remove(_obj Object) ObjectSet{
 	delete(*_set, _obj.Key())
 	return *_set
 }
+func (_set *ObjectSet) RemoveFrom(_objs ObjectSet){
+	if *_set == nil{
+		*_set = make(ObjectSet)
+	}
+	if _objs == nil{
+		return
+	}
+
+	for _, v := range _objs{
+		if !_set.Has(v){
+			continue
+		}
+		_set.Remove(v)
+	}
+}
 
 func (_set *ObjectSet) Intersect(_objs ObjectSet){
 	if *_set == nil{

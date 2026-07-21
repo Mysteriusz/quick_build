@@ -89,22 +89,26 @@ type FileState struct{
 func (_vc_state *FileState)Pipe() *PipeStructure{
 	return _vc_state.File.PipeFromIdx(_vc_state.PipeIdx)
 }
-func (_vc_state *FileState) Save() (res bool){
+func (_vc_state *FileState) SaveWithState(_qb_state *qb.BuildState) (res bool){
+	if _qb_state == nil{
+		return
+	}
+
 	/*
 		Update source files
 	*/
-	_vc_state.Pipe().SourceFiles = qbio.FileArrayUnion(_vc_state.Pipe().SourceFiles, _vc_state.DiffSources.Modified)
-	for _, f := range _vc_state.DiffSources.Removed{
-		_vc_state.Pipe().SourceFiles.Remove(f)
-	}
+	_vc_state.Pipe().SourceFiles = _qb_state.GatherAllSources()
 
 	/*
 		Update header files
 	*/
-	_vc_state.Pipe().HeaderFiles = qbio.FileArrayUnion(_vc_state.Pipe().HeaderFiles, _vc_state.DiffHeaders.Modified)
-	for _, f := range _vc_state.DiffHeaders.Removed{
-		_vc_state.Pipe().HeaderFiles.Remove(f)
-	}
+	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
+
+	/*
+		Update output files
+	*/
+	_vc_state.Pipe().OutWorkingSet.RemoveFrom(_vc_state.DiffOutput.Removed)
+	_vc_state.Pipe().OutWorkingSet.Merge(_vc_state.DiffOutput.Modified)
 
 	return _vc_state.File.Save()
 }

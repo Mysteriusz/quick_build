@@ -49,7 +49,6 @@ func DiffSources(_qb_state *qb.BuildState, _vc_state *vc.FileState)(vc.FileDiff,
 		Catch all new files
 	*/
 	src_diff.Modified = vc.DiffNewFiles(_vc_state.Pipe().SourceFiles, _qb_state.GatherAllSources())
-	println(len(src_diff.Modified))
 
 	/*
 		Catch all modified/removed files
@@ -66,6 +65,7 @@ func DiffSources(_qb_state *qb.BuildState, _vc_state *vc.FileState)(vc.FileDiff,
 		_,src_file := qb.GetObjectExtra[qbio.File](&obj, clang.OUT_SRC)
 
 		removed, no_change := OutObjectVerify(obj, _vc_state)
+		// If the file hasn`t changed then ignore it
 		if no_change{
 			continue
 		}

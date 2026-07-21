@@ -53,6 +53,16 @@ func RunVCProviders(
 		_vc_state.DiffSources = diff
 	}
 
+	/*
+		Execute the output diff provider
+	*/
+	if prov, use := _policy.(vc.OutputDiffProvider); use{
+		diff, err := prov.ComputeOutputDiff(_qb_state, _vc_state)
+		if err.Check(){
+			return err
+		}
+		_vc_state.DiffOutput = diff
+	}
 	println("Header Diff")
 	println("REMOVED")
 	println(len(_vc_state.DiffHeaders.Removed))
@@ -64,6 +74,12 @@ func RunVCProviders(
 	println(len(_vc_state.DiffSources.Removed))
 	println("MODIFIED")
 	println(len(_vc_state.DiffSources.Modified))
+	println()
+	println("Object Diff")
+	println("REMOVED")
+	println(len(_vc_state.DiffOutput.Removed))
+	println("MODIFIED")
+	println(len(_vc_state.DiffOutput.Modified))
 
 	return qb.BuildError{}.None()
 }
@@ -139,7 +155,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 	if vc_enabled{
 		vc_state.SetOutputWorkingSet(_state)
-		vc_state.Save()
+		vc_state.SaveWithState(_state)
 	}
 
 	// End execution timer
