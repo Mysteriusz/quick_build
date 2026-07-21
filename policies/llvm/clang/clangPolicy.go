@@ -138,6 +138,7 @@ func (_policy *PolicyInfo) ComputeOutputDiff(_qb_state *qb.BuildState, _vc_state
 	/*
 		Access the policy config
 	*/
+
 	policy_name := _qb_state.CurrentPipe().CommandPolicyName
 	cfg, res := policies.DecodeConfig[clang.PolicyConfig](_policy.base, policy_name)
 	if !res{

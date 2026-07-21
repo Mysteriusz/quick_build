@@ -154,7 +154,6 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 	policy.Run(_state)
 
 	if vc_enabled{
-		vc_state.SetOutputWorkingSet(_state)
 		vc_state.SaveWithState(_state)
 	}
 

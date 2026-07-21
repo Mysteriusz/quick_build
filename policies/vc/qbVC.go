@@ -89,6 +89,11 @@ type FileState struct{
 func (_vc_state *FileState)Pipe() *PipeStructure{
 	return _vc_state.File.PipeFromIdx(_vc_state.PipeIdx)
 }
+
+/*
+	Save the version control file and update build state
+	to match the diffed state
+*/
 func (_vc_state *FileState) SaveWithState(_qb_state *qb.BuildState) (res bool){
 	if _qb_state == nil{
 		return
@@ -108,7 +113,15 @@ func (_vc_state *FileState) SaveWithState(_qb_state *qb.BuildState) (res bool){
 		Update output files
 	*/
 	_vc_state.Pipe().OutWorkingSet.RemoveFrom(_vc_state.DiffOutput.Removed)
+
+	/*
+		Merge with working set by assuming it contains
+		all the objects that were missing/reprocessed
+	*/
 	_vc_state.Pipe().OutWorkingSet.Merge(_vc_state.DiffOutput.Modified)
+	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
+
+	_qb_state.WorkingSet = _vc_state.Pipe().OutWorkingSet
 
 	return _vc_state.File.Save()
 }
@@ -148,33 +161,6 @@ func (_vc_file *VCFile) Save() (res bool){
 func LinkToBuildState(_qb_state *qb.BuildState, _vc_state *FileState){
 	_qb_state.GetHeaders = func ()(qbio.FileArray){return _vc_state.DiffHeaders.Modified}
 	_qb_state.GetSources = func ()(qbio.FileArray){return _vc_state.DiffSources.Modified}
-}
-
-/*
-	Merge both sets so that input working set of the 
-	version control has both added and updated objects stored 
-
-	TODO:
-	(Need some type of deletion control,
-	so that objects that were deleted are not hanging)
-*/
-func (_vc_state *FileState)SetInputWorkingSet(_qb_state *qb.BuildState){
-	_vc_state.Pipe().InWorkingSet.Merge(_qb_state.WorkingSet)
-}
-
-/*
-	Merge both sets so that output working set of the 
-	version control has both added and updated objects stored 
-
-	TODO:
-	(Need some type of deletion control,
-	so that objects that were deleted are not hanging)
-*/
-func (_vc_state *FileState)SetOutputWorkingSet(_qb_state *qb.BuildState){
-	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
-	for _, o := range _vc_state.DiffOutput.Removed{
-		_vc_state.Pipe().OutWorkingSet.Remove(o)
-	}
 }
 
 /*
