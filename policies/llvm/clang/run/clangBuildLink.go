@@ -25,9 +25,9 @@ import(
 		-myflag `
 		-o D:/output.exe `
 */
-func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.ObjectSet, res bool){
-	if _state == nil{
-		return
+func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.ObjectSet, err qb.BuildError){
+	if _state == nil || _cfg == nil{
+		return qb.ObjectSet{}, qb.BuildError{}.NilArgument(_state)
 	}
 
 	/*
@@ -38,14 +38,15 @@ func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.
 
 	output_name, res := _cfg.Vars["output_name"]
 	if !res{
-		fmt.Println("Policy variable called 'output_name' not found but required.")
-		return
+		return qb.ObjectSet{}, qb.BuildError{}.New(_state,
+			"Policy variable called 'output_name' not found but required.")
 	}
 
 	output_ext, res := _cfg.Vars["output_ext"]
 	if !res{
-		fmt.Println("Policy variable called 'output_ext' not found but required.")
-		return
+		fmt.Println()
+		return qb.ObjectSet{}, qb.BuildError{}.New(_state,
+			"Policy variable called 'output_ext' not found but required.")
 	}
 
 
@@ -84,8 +85,8 @@ func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.
 
 		file := obj.Data.(qb.FileObject).File
 		if !file.IsValid(){
-			fmt.Printf("Failed to validate file:\n %s\n", file.FullPath)
-			return
+			return qb.ObjectSet{}, qb.BuildError{}.New(_state,
+				"Failed to validate file:\n %s\n", file.FullPath)
 		}
 
 		inputs = append(inputs, file.FullPath)
@@ -115,7 +116,8 @@ func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.
 
 	res = cmd.Run()
 	if !res{
-		return
+		return qb.ObjectSet{}, qb.BuildError{}.New(_state,
+			"Error occured when executing the command.")
 	}
 
 	/*
@@ -129,6 +131,6 @@ func LinkFromState(_state *qb.BuildState, _cfg *clang.PolicyConfig) (out_set qb.
 
 	out_set.Update(obj)
 
-	return out_set, true
+	return out_set, qb.BuildError{}.None()
 }
 

@@ -6,7 +6,7 @@ import(
 	"qb/policies/llvm/clang/cfg"
 )
 
-var EXECUTE_FUNCS = map[string]func(*clang.PolicyConfig, *qb.BuildState)(bool){
+var EXECUTE_FUNCS = map[string]func(*qb.BuildState, *clang.PolicyConfig)(qb.BuildError){
 	"Compile": CompileExec,
 	"Link": LinkExec,
 }
@@ -23,17 +23,21 @@ OUTPUT:
 	[]qb.Object with types: TYPE_FILE
 
 */
-func CompileExec(_config *clang.PolicyConfig, _state *qb.BuildState) (res bool){
+func CompileExec(_state *qb.BuildState, _config *clang.PolicyConfig) qb.BuildError{
+	if _state == nil || _config == nil{
+		return qb.BuildError{}.NilArgument(_state)
+	}
+
 	_state.ClearWorkingSet()
 
-	objects, res := run.CompileFromState(_state)
-	if !res{
-		return false
+	objects, err := run.CompileFromState(_state)
+	if err.Check(){
+		return err
 	}
 
 	_state.LoadWorkingSet(objects)
 
-	return true
+	return qb.BuildError{}.None()
 }
 
 /*	
@@ -48,20 +52,20 @@ OUTPUT:
 	_state.WorkingSet types: TYPE_FILE
 
 */
-func LinkExec(_config *clang.PolicyConfig, _state *qb.BuildState) (res bool){
-	if _state == nil{
-		return
+func LinkExec(_state *qb.BuildState, _config *clang.PolicyConfig) qb.BuildError{
+	if _state == nil || _config == nil{
+		return qb.BuildError{}.NilArgument(_state)
 	}
 	
-	out_set, res := run.LinkFromState(_state, _config)
-	if !res{
-		return
+	out_set, err := run.LinkFromState(_state, _config)
+	if err.Check(){
+		return err
 	}
 
 	_state.ClearWorkingSet()
 	_state.LoadWorkingSet(out_set)
 
-	return true
+	return qb.BuildError{}.None()
 }
 
 

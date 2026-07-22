@@ -54,6 +54,17 @@ func RunVCProviders(
 	}
 
 	/*
+		Execute the input diff provider
+	*/
+	if prov, use := _policy.(vc.InputDiffProvider); use{
+		diff, err := prov.ComputeInputDiff(_qb_state, _vc_state)
+		if err.Check(){
+			return err
+		}
+		_vc_state.DiffInput = diff
+	}
+	
+	/*
 		Execute the output diff provider
 	*/
 	if prov, use := _policy.(vc.OutputDiffProvider); use{
@@ -130,8 +141,6 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 	var not_first_build bool
 
-	/*
-	*/
 	if vc_enabled{
 		/*
 			Initialize the FileState
@@ -141,11 +150,25 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 		/*
 			Set as first build if rebuild requested
 		*/
-		not_first_build = not_first_build && pipe.AlwaysRebuild
+		not_first_build = not_first_build || pipe.AlwaysRebuild
 
 		err := RunVCProviders(policy, _state, &vc_state)
 		if err.Check(){
 			return err
+		}
+
+		diff_len := vc_state.DiffSources.Len() +
+			vc_state.DiffHeaders.Len() +
+			vc_state.DiffInput.Len() +
+			vc_state.DiffOutput.Len()
+		/*
+			If there are no diffs nor is the build first
+			act as if the build had finished
+		*/
+		if diff_len == 0 && not_first_build{
+			// Clear working set since the policy was not ran
+			_state.ClearWorkingSet()
+			goto timer_end
 		}
 
 		vc.LinkToBuildState(_state, &vc_state)
@@ -153,6 +176,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 	policy.Run(_state)
 
+timer_end:
 	if vc_enabled{
 		vc_state.SaveWithState(_state)
 	}

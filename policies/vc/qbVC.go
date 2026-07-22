@@ -18,7 +18,7 @@ type HeaderDiffProvider interface{
 	ComputeHeaderDiff(_qb_state *qb.BuildState, _vc_state *FileState) (FileDiff, qb.BuildError)
 }
 type InputDiffProvider interface{
-	OutputInputDiff(_qb_state *qb.BuildState, _vc_state *FileState) (ObjectDiff, qb.BuildError)
+	ComputeInputDiff(_qb_state *qb.BuildState, _vc_state *FileState) (ObjectDiff, qb.BuildError)
 }
 type OutputDiffProvider interface{
 	ComputeOutputDiff(_qb_state *qb.BuildState, _vc_state *FileState) (ObjectDiff, qb.BuildError)
@@ -110,15 +110,21 @@ func (_vc_state *FileState) SaveWithState(_qb_state *qb.BuildState) (res bool){
 	_vc_state.Pipe().HeaderFiles = _qb_state.GatherAllHeaders()
 
 	/*
-		Update output files
+		Update input objects 
+	*/
+	_vc_state.Pipe().InWorkingSet.Merge(_vc_state.DiffInput.Modified)
+	_vc_state.Pipe().InWorkingSet.RemoveFrom(_vc_state.DiffInput.Removed)
+
+	/*
+		Update output objects by removing the ones that were
+		marked as removed
 	*/
 	_vc_state.Pipe().OutWorkingSet.RemoveFrom(_vc_state.DiffOutput.Removed)
 
 	/*
 		Merge with working set by assuming it contains
-		all the objects that were missing/reprocessed
+		objects that were added/reprocessed
 	*/
-	_vc_state.Pipe().OutWorkingSet.Merge(_vc_state.DiffOutput.Modified)
 	_vc_state.Pipe().OutWorkingSet.Merge(_qb_state.WorkingSet)
 
 	_qb_state.WorkingSet = _vc_state.Pipe().OutWorkingSet
@@ -190,10 +196,12 @@ func InitState(_state *qb.BuildState) (not_first_build bool, vc_state FileState)
 	}
 
 	existed, pipe_idx := LoadPipeLog(_state, &vc_file)
-	return existed, FileState{
+	vc_state = FileState{
 		File: vc_file,
 		PipeIdx: pipe_idx,
 	}
+
+	return existed, vc_state
 }
 
 /*

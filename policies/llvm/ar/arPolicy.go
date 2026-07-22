@@ -3,11 +3,19 @@ package ar
 import(
 	"qb/build"
 	"qb/policies"
+	"qb/policies/vc"
+
+	"qb/policies/llvm/ar/vc"
+	"qb/policies/llvm/ar/run"
+	"qb/policies/llvm/ar/cfg"
 )
 
 type PolicyInfo struct{
 	base 		policies.PolicyFile
-	config		*PolicyConfig
+	config		*ar.PolicyConfig
+
+	vc.InputDiffProvider
+	vc.OutputDiffProvider
 }
 
 const POLICY_FILE_PATH string = "./policies/llvm/ar.toml"
@@ -22,6 +30,8 @@ func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
 	if !res{
 		return nil
 	}
+
+	_policy.base = file
 	return &file
 }
 func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{
@@ -29,59 +39,55 @@ func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{
 		return qb.BuildError{}.NilArgument(_state)
 	}
 
-	/*res = RunFromState(_policy, _state)
+	/*
+		Access the policy config
+	*/
+
+	policy_name := _state.CurrentPipe().CommandPolicyName
+	cfg, res := policies.DecodeConfig[ar.PolicyConfig](_policy.base, policy_name)
 	if !res{
-		return
-	}*/
+		return qb.BuildError{}.New(_state,
+			"Unable to find policy by name: '%s'", policy_name)
+	}
+
+	/*
+		Execute the ar archive function
+	*/
+
+	out_set, err := run.ArchiveFromState(&cfg, _state)
+	if err.Check(){
+		return err
+	}
+
+	/*
+		Save output to working set
+	*/
+
+	_state.ClearWorkingSet()
+	_state.LoadWorkingSet(out_set)
 
 	return qb.BuildError{}.None()
 }
 
-/*	
-
-FIELDS:
-	'Mode' -> ar-compatbile mode ex: rcs
-	'OutputExt' -> ar-compatbile extension of the output archive
-	'OutputName' -> ar-compatbile name of the output archive
-
-*/
-type PolicyConfig struct{
-	Mode		string 	`toml:"mode"`
-	OutputExt	string 	`toml:"output_ext"`
-	OutputName	string 	`toml:"output_name"`
-}
-
-func (_cfg *PolicyConfig)Execute(_state *qb.BuildState) (res bool){
-
-/*	
-
-	Execute archive creation only for the qb.BuildState object`s
-
-INPUT:
-	_state.WorkingSet with types: TYPE_FILE
-	_cfg.Mode
-	_cfg.OutputExt
-	_cfg.OutputName
-
-OUTPUT:
-	[]qb.Object with types: TYPE_FILE
-
-*/
-
-	/*objects, res := ArchiveFromState(_cfg, _state)
-	if !res{
-		return
-	}
-
-	_state.ClearWorkingSet()
-	_state.LoadWorkingSet(objects)*/
-
-	return true
-}
 
 /*
 
 	================ VERSION CONTROL ================
 
 */
+
+func (_policy *PolicyInfo) ComputeInputDiff(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.ObjectDiff, qb.BuildError){
+	if _qb_state == nil || _vc_state == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.NilArgument(_qb_state)
+	}
+
+	return ar_vc.DiffIn(_qb_state, _vc_state)
+}
+func (_policy *PolicyInfo) ComputeOutputDiff(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.ObjectDiff, qb.BuildError){
+	if _qb_state == nil || _vc_state == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.NilArgument(_qb_state)
+	}
+
+	return ar_vc.DiffOut(_qb_state, _vc_state)
+}
 

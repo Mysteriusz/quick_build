@@ -6,6 +6,7 @@ import(
 	"qb/configs"
 	"qb/build"
 	"qb/build/runner"
+	//"qb/policies/vc"
 	/*"qb/misc"
 	. "qb/io"
 	. "qb/policies/vc"*/
@@ -17,6 +18,7 @@ func main(){
 	if !res{
 		return
 	}
+	_ = cfg
 
 	for _, entry := range cfg.Entries{
 		fmt.Println("=================================================")
@@ -37,6 +39,26 @@ func main(){
 			return
 		}
 	}
+	/*o1, _ := qb.InitObject("D:/fld/build/file0.o", qb.TYPE_FILE)
+	o2, _ := qb.InitObject("D:/fld/build/file1.o", qb.TYPE_FILE)
+
+	s1 := qb.ObjectSet{}
+	s1.Update(o1)
+	s1.Update(o2)
+
+	s2 := qb.ObjectSet{}
+	s2.Update(o1)
+
+	diff := vc.DiffObjects(s1, s2)
+	println("m")
+	for _, f:= range diff.Modified{
+		println(f.String())
+	}
+	println("r")
+	for _, f:= range diff.Removed{
+		println(f.String())
+	}*/
+
 
 	/*v := VCIntersectFiles(
 		QB_FileArray{

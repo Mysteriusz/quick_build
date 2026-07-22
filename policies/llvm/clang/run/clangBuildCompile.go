@@ -28,9 +28,9 @@ import(
 			D:/source.c `
 			-o D:/my_ouptut.o `
 */
-func CompileFromState(_state *qb.BuildState) (out_set qb.ObjectSet, res bool){
+func CompileFromState(_state *qb.BuildState) (out_set qb.ObjectSet, err qb.BuildError){
 	if _state == nil{
-		return
+		return qb.ObjectSet{}, qb.BuildError{}.NilArgument(_state)
 	}
 
 	pipe := _state.CurrentPipe()
@@ -84,7 +84,8 @@ func CompileFromState(_state *qb.BuildState) (out_set qb.ObjectSet, res bool){
 
 		// Run the command
 		if !cmd.Run(){
-			return
+			return qb.ObjectSet{}, qb.BuildError{}.New(_state,
+				"Error occured when executing the command.")
 		}
 
 		/*
@@ -107,5 +108,5 @@ func CompileFromState(_state *qb.BuildState) (out_set qb.ObjectSet, res bool){
 		out_set.Update(obj)
 	}
 
-	return out_set, true
+	return out_set, qb.BuildError{}.None()
 }

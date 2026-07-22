@@ -6,6 +6,7 @@ header_directory = "D:/fld/inc"
 source_directory = "D:/fld/src"
 output_directory = "D:/fld/build"
 
+## 0
 [[Entry.Pipeline]]
 
 command = "clang" 			# The main exection command
@@ -25,6 +26,13 @@ definitions = [
 hooks = [
 	"D:/fld",
 ]
+
+## 1
+[[Entry.Pipeline]]
+
+command = "ar" 				# The main exection command
+command_policy_alias = "llvm-ar" 	# The known toolchain specific execution policy alias
+command_policy_name = "MyArchive" 	# Toolchain policy name
 
 #[[Entry]]
 #name = "t1"

@@ -1,7 +1,7 @@
 [Policies]
 
-[Policies.MyLib]
+[Policies.MyArchive]
 mode = "rcs"
-output_ext = ".lib"
-output_name = "ax_utility_lib"
+output_ext = ".a"
+output_name = "myarchive"
 

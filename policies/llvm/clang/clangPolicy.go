@@ -57,10 +57,10 @@ func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{
 			"Unsupported execution function: '%s'", cfg.Function)
 	}
 
-	res = exec(&cfg, _state)
-	if !res{
-		return qb.BuildError{}.New(_state,
-			"Unsupported execution function: '%s'", cfg.Function)
+	err := exec(_state, &cfg)
+	
+	if err.Check(){
+		return err
 	}
 
 	return qb.BuildError{}.None()

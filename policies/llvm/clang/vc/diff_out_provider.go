@@ -8,21 +8,25 @@ import(
 )
 
 func DiffOutForAll(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.ObjectDiff, qb.BuildError){
+	if _qb_state == nil || _vc_state == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.NilArgument(_qb_state)
+	}
+
 	var out_diff vc.ObjectDiff
-	for _, val := range _vc_state.Pipe().OutWorkingSet{
-		if val.Type != qb.TYPE_FILE{
+	for _, obj := range _vc_state.Pipe().OutWorkingSet{
+		if obj.Type != qb.TYPE_FILE{
 			continue
 		}
 
-		_,src := qb.GetObjectExtra[qbio.File](&val, clang.OUT_SRC)
+		_,src := qb.GetObjectExtra[qbio.File](&obj, clang.OUT_SRC)
 
 		if !src.IsValid(){
-			out_diff.Removed.Update(val)
+			out_diff.Removed.Update(obj)
 			continue
 		}
 		
 		if !src.InvalidateHash(){
-			out_diff.Modified.Update(val)
+			out_diff.Modified.Update(obj)
 			continue
 		}
 	}
@@ -30,6 +34,10 @@ func DiffOutForAll(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.Object
 	return out_diff, qb.BuildError{}.None()
 }
 func DiffOutForAny(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.ObjectDiff, qb.BuildError){
+	if _qb_state == nil || _vc_state == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.NilArgument(_qb_state)
+	}
+
 	var out_diff vc.ObjectDiff
 	return out_diff, qb.BuildError{}.None()
 }
