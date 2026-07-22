@@ -93,9 +93,13 @@ func (_policy *PolicyInfo) ComputeHeaderDiff(_qb_state *qb.BuildState, _vc_state
 	*/
 
 	diff_func, found := maps.DIFF_HDR_PROVIDERS[cfg.Function]
-	if !found || diff_func == nil{
+	if !found{
 		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
 			"Unsupported header provider for the function: '%s'", cfg.Function)
+	}
+
+	if diff_func == nil{
+		return vc.FileDiff{}, qb.BuildError{}.None()
 	}
 
 	return diff_func(_qb_state, _vc_state)
@@ -122,9 +126,44 @@ func (_policy *PolicyInfo) ComputeSourceDiff(_qb_state *qb.BuildState, _vc_state
 	*/
 
 	diff_func, found := maps.DIFF_SRC_PROVIDERS[cfg.Function]
-	if !found || diff_func == nil{
+	if !found{
 		return vc.FileDiff{}, qb.BuildError{}.New(_qb_state,
 			"Unsupported source provider for the function: '%s'", cfg.Function)
+	}
+	if diff_func == nil{
+		return vc.FileDiff{}, qb.BuildError{}.None()
+	}
+
+	return diff_func(_qb_state, _vc_state)
+}
+
+func (_policy *PolicyInfo) ComputeInputDiff(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.ObjectDiff, qb.BuildError){
+	if _qb_state == nil || _vc_state == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.NilArgument(_qb_state)
+	}
+
+	/*
+		Access the policy config
+	*/
+
+	policy_name := _qb_state.CurrentPipe().CommandPolicyName
+	cfg, res := policies.DecodeConfig[clang.PolicyConfig](_policy.base, policy_name)
+	if !res{
+		return vc.ObjectDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unable to find policy by name: '%s'", policy_name)
+	}
+
+	/*
+		Use the config data
+	*/
+
+	diff_func, found := maps.DIFF_IN_PROVIDERS[cfg.Function]
+	if !found{
+		return vc.ObjectDiff{}, qb.BuildError{}.New(_qb_state,
+			"Unsupported input provider for the function: '%s'", cfg.Function)
+	}
+	if diff_func == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.None()
 	}
 
 	return diff_func(_qb_state, _vc_state)
@@ -151,9 +190,12 @@ func (_policy *PolicyInfo) ComputeOutputDiff(_qb_state *qb.BuildState, _vc_state
 	*/
 
 	diff_func, found := maps.DIFF_OUT_PROVIDERS[cfg.Function]
-	if !found || diff_func == nil{
+	if !found{
 		return vc.ObjectDiff{}, qb.BuildError{}.New(_qb_state,
 			"Unsupported output provider for the function: '%s'", cfg.Function)
+	}
+	if diff_func == nil{
+		return vc.ObjectDiff{}, qb.BuildError{}.None()
 	}
 
 	return diff_func(_qb_state, _vc_state)

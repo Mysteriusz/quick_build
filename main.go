@@ -36,6 +36,7 @@ func main(){
 
 		err = runner.ExecuteFromState(&state)
 		if err.Check(){
+			println(err.Message())
 			return
 		}
 	}

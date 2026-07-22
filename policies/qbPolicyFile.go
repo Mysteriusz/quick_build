@@ -9,21 +9,21 @@ import(
 )
 
 type PolicyFile struct{
-	File		qbio.File
 	Policies 	map[string]any  	`toml:"Policies"`
+	qbio.File
 }
 
-func LoadPolicyFile(_path string) (file PolicyFile, res bool){
-	qb_file := qbio.InitFile(_path)
-	defer qb_file.Save()
+func LoadPolicyFile(_path string) (policy PolicyFile, res bool){
+	policy.File = qbio.InitFile(_path)
+	defer policy.File.Save()
 
-	err := toml.NewDecoder(qb_file.GetFile()).Decode(&file)
+	err := toml.NewDecoder(policy.GetFileReadOnly()).Decode(&policy)
 	if err != nil{
-		fmt.Printf("Unable to decode the policy file:\n %s\n", qb_file.FullPath)
+		fmt.Printf("Unable to decode the policy file:\n %s\n", policy.FullPath)
 		return
 	}
 
-	return file, true
+	return policy, true
 }
 func DecodeConfig[CFG_T any](_file PolicyFile, _name string) (dec CFG_T, res bool){
 	payload, exists := _file.Policies[_name]

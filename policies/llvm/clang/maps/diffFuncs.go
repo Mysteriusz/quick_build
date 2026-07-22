@@ -14,6 +14,10 @@ var DIFF_SRC_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.FileD
 	"Compile": clang_vc.DiffSources,
 	"Link": nil,
 }
+var DIFF_IN_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.ObjectDiff, qb.BuildError){
+	"Compile": nil,
+	"Link": clang_vc.DiffIn,
+}
 var DIFF_OUT_PROVIDERS = map[string]func(*qb.BuildState, *vc.FileState)(vc.ObjectDiff, qb.BuildError){
 	"Compile": clang_vc.DiffOutForAll,
 	"Link": clang_vc.DiffOutForAny,

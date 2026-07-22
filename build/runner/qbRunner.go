@@ -136,6 +136,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 	/*
 		Version control variables
 	*/
+	var err qb.BuildError
 	var vc_enabled bool = policy.GetCapabilities().VersionControl
 	var vc_state vc.FileState
 
@@ -150,7 +151,9 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 		/*
 			Set as first build if rebuild requested
 		*/
-		not_first_build = not_first_build || pipe.AlwaysRebuild
+		if pipe.AlwaysRebuild{
+			goto rebuild
+		}
 
 		err := RunVCProviders(policy, _state, &vc_state)
 		if err.Check(){
@@ -174,7 +177,11 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 		vc.LinkToBuildState(_state, &vc_state)
 	}
 
-	policy.Run(_state)
+rebuild:
+	err = policy.Run(_state)
+	if err.Check(){
+		return err
+	}
 
 timer_end:
 	if vc_enabled{
