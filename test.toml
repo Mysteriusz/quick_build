@@ -43,88 +43,73 @@ hooks = [
 [[Entry.Pipeline]]
 command = "ar" 				# The main exection command
 command_policy_alias = "llvm-ar" 	# The known toolchain specific execution policy alias
-command_policy_name = "MyLib" 		# Toolchain policy name
+command_policy_name = "AX_VIRT_LAYER_LIB" 		# Toolchain policy name
 
 #
 # Entry Index 1
 #
-#[[Entry]]
-#
-#name = "ax_virt_layer"
-#source_directory = "D:/ax_project/ax_virt_layer/win64/user/src"
-#output_directory = "D:/ax_project/ax_virt_layer/win64/user/build"
-#
-#[[Entry.Pipeline]]
-#command = "clang"
-#command_policy_alias = "llvm-clang"
-#command_policy_name = "MyCompile"
-#
-#flags = [
-#	"m64",
-#	"Wno-deprecated-declarations",
-#	"std=c23",
-#	"mavx2",
-#	"mbmi2",
-#	"O3",
-#	"-save-temps",
-#]
-#definitions = [
-#	"AX_UM",
-#	"AX_WIN64",
-#]
-#hooks = [
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/data",
-#	"D:/ax_project/ax_virt_layer/win64/user/src",
-#	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm",
-#]
+[[Entry]]
 
-#[[Entry.Pipeline]]
-#command = "clang"
-#command_policy_alias = "llvm-clang"
-#command_policy_name = "AX_VIRT_LAYER_LINK"
-#
-#flags = [
-#	"m63",
-#	"Wno-deprecated-declarations",
-#	"std=c23",
-#	"mavx2",
-#	"mbmi2",
-#	"LD:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/win_um/",
-#	"lax_utility_lib",
-#]
-#definitions = [
-#	"AX_UM",
-#	"AX_WIN64",
-#]
-#hooks = [
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io",
-#	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/data",
-#	"D:/ax_project/ax_virt_layer/win64/user/src",
-#	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm",
-#]
+name = "ax_virt_layer"
+source_directory = "D:/ax_project/ax_virt_layer/win64/user/src"
+output_directory = "D:/ax_project/ax_virt_layer/win64/user/build"
 
+[[Entry.Pipeline]]
+command = "clang"
+command_policy_alias = "llvm-clang"
+command_policy_name = "MyCompile"
 
+flags = [
+	"Wall",
+	"Wextra",
+	"m64",
+	"std=c23",
+	"mavx2",
+	"mbmi2",
+	"O3",
+	"-save-temps",
+	"Wno-deprecated-declarations",
+	"Wno-pragma-pack",
+	"Wno-unknown-pragmas",
+	"Wno-unused-function",
+	"Wno-unused-but-set-variable",
+]
+definitions = [
+	"AX_UM",
+	"AX_WIN64",
+]
+hooks = [
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/data",
+	"D:/ax_project/ax_virt_layer/win64/user/src",
+	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm",
+]
 
+[[Entry.Pipeline]]
+command = "clang"
+command_policy_alias = "llvm-clang"
+command_policy_name = "AX_VIRT_LAYER_LINK"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+flags = [
+	"m64",
+	"std=c23",
+	"mavx2",
+	"mbmi2",
+	"LD:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/build/win_um/",
+	"lax_utility_lib",
+]
+definitions = [
+	"AX_UM",
+	"AX_WIN64",
+]
+hooks = [
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/ext",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io",
+	"D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/data",
+	"D:/ax_project/ax_virt_layer/win64/user/src",
+	"D:/ax_project/ax_virt_layer/win64/user/src/mte/asm",
+]
 

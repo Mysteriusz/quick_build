@@ -1,5 +1,10 @@
 [Policies]
 
+[Policies.AX_VIRT_LAYER_LIB]
+mode = "rcs"
+output_ext = ".lib"
+output_name = "ax_utility_lib"
+
 [Policies.MyArchive]
 mode = "rcs"
 output_ext = ".a"

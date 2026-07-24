@@ -2,9 +2,9 @@
 [[Entry]]
 
 name = "t0"
-header_directory = "D:/fld1/inc"
-source_directory = "D:/fld1/src"
-output_directory = "D:/fld1/build"
+header_directory = "D:/fld/inc"
+source_directory = "D:/fld/src"
+output_directory = "D:/fld/build"
 
 ## 0
 [[Entry.Pipeline]]
@@ -24,27 +24,6 @@ definitions = [
 	"MYDEF",
 ]
 hooks = [
-	"D:/fld1",
-]
-
-## 1
-[[Entry.Pipeline]]
-
-command = "clang" 			# The main exection command
-command_policy_alias = "llvm-clang" 	# The known toolchain specific execution policy alias
-command_policy_name = "MyLink" 		# Toolchain policy name
-#
-# 	Usage of these properties may differ depending on
-#	the policy file and name and their implementations
-#
-flags = [
-	"m64",
-	"std=c23",
-]
-definitions = [
-	"MYDEF",
-]
-hooks = [
-	"D:/fld1",
+	"D:/fld",
 ]
 

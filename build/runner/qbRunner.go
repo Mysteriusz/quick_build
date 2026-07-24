@@ -150,8 +150,9 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 		/*
 			Set as first build if rebuild requested
+			or state hash has changed
 		*/
-		if pipe.AlwaysRebuild{
+		if pipe.AlwaysRebuild || vc.StateUniqueHash(_state) != vc_state.Pipe().StateHash{
 			goto rebuild
 		}
 

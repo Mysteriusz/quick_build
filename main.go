@@ -1,24 +1,55 @@
 package main
 
 import(
+	"os"
 	"fmt"
 
-	"qb/configs"
+	"qb/qbio"
 	"qb/build"
+	"qb/configs"
 	"qb/build/runner"
-	//"qb/policies/vc"
-	/*"qb/misc"
-	. "qb/io"
-	. "qb/policies/vc"*/
 )
 
+type args_desc struct{
+	ConfigFile string
+}
+
+func check_arg_value(args []string, idx int) (string){
+	// Index is the last/oob so there is no value
+	if idx >= len(args) - 1{
+		return ""
+	}
+	return args[idx + 1]
+}
+
+func parse_args(args []string) args_desc {
+	var desc args_desc 
+	for idx := 1; idx < len(args); idx++{
+		arg := args[idx]
+		if (arg == "--config-file" || arg == "-f") && desc.ConfigFile == ""{
+			desc.ConfigFile = check_arg_value(args, idx)
+			idx++
+		}else{ goto err_config_file }
+	}
+
+err_config_file:
+	if !qbio.InitFile(desc.ConfigFile).IsValid(){
+		println("Argument parser error.")
+		println("Invalid config file provided.")
+		println("'"+ desc.ConfigFile + "'")
+		os.Exit(1)
+	}
+
+	return desc
+}
+
 func main(){
-	//cfg, res := QBConfigLoad("D:/ax_project/quick_build_new/test.toml")
-	cfg, res := configs.ConfigLoad("D:/ax_project/quick_build_new/cases.toml")
+	args := parse_args(os.Args)
+
+	cfg, res := configs.ConfigLoad(args.ConfigFile)
 	if !res{
 		return
 	}
-	_ = cfg
 
 	for _, entry := range cfg.Entries{
 		fmt.Println("=================================================")
@@ -40,39 +71,6 @@ func main(){
 			return
 		}
 	}
-	/*o1, _ := qb.InitObject("D:/fld/build/file0.o", qb.TYPE_FILE)
-	o2, _ := qb.InitObject("D:/fld/build/file1.o", qb.TYPE_FILE)
-
-	s1 := qb.ObjectSet{}
-	s1.Update(o1)
-	s1.Update(o2)
-
-	s2 := qb.ObjectSet{}
-	s2.Update(o1)
-
-	diff := vc.DiffObjects(s1, s2)
-	println("m")
-	for _, f:= range diff.Modified{
-		println(f.String())
-	}
-	println("r")
-	for _, f:= range diff.Removed{
-		println(f.String())
-	}*/
-
-
-	/*v := VCIntersectFiles(
-		QB_FileArray{
-			QBInitFile("D:\\ax_project\\ax_virt_layer_utils\\utils\\ax_utility_lib\\src\\io\\structures\\murmur.h"),
-			QBInitFile("D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io/ax_memory_state.h"),
-		},
-		QB_FileArray{
-			QBInitFile("D:\\ax_project\\ax_virt_layer_utils\\utils\\ax_utility_lib\\src\\io\\structures\\murmur.h"),
-			QBInitFile("D:/ax_project/ax_virt_layer_utils/utils/ax_utility_lib/src/io/ax_memory_state.h"),
-		},
-	)
-	misc.PrintArray(v.AllPaths())*/
-	//misc.PrintArray(misc.Union([]string{"a", "b", "c"}, []string{"c", "b", "d"}))
 }
 
 

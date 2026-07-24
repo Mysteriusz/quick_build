@@ -99,6 +99,8 @@ func (_vc_state *FileState) SaveWithState(_qb_state *qb.BuildState) (res bool){
 		return
 	}
 
+	_vc_state.Pipe().StateHash = StateUniqueHash(_qb_state)
+
 	/*
 		Update source files
 	*/
@@ -202,40 +204,6 @@ func InitState(_state *qb.BuildState) (not_first_build bool, vc_state FileState)
 	}
 
 	return existed, vc_state
-}
-
-/*
-	Gather all changed objects to 'FileState' object
-*/
-func Diff(_qb_state *qb.BuildState, _vc_state *FileState) (not_diff bool, not_crit_diff bool){
-	if _qb_state == nil || _vc_state == nil{
-		return
-	}
-
-	// Source files diff
-	d1 := DiffFiles(_qb_state.GatherAllSources(), _vc_state.Pipe().SourceFiles)
-	_vc_state.DiffSources = d1
-
-	// Header files diff
-	d2 := DiffFiles(_qb_state.GatherAllHeaders(), _vc_state.Pipe().HeaderFiles)
-	_vc_state.DiffHeaders = d2
-
-	// Input objects diff
-	d3 := DiffObjects(_qb_state.WorkingSet, _vc_state.Pipe().InWorkingSet)
-	_vc_state.DiffInput = d3
-
-	/*
-		Unique hash diff
-		(if this if false the rebuild has to happen for the entire build)
-	*/
-	d4 := (StateUniqueHash(_qb_state) == _vc_state.Pipe().StateHash)
-
-	/*
-		TODO:
-		Add input and output set validation via hash
-	*/
-
-	return d1.Len() == 0 && d2.Len() == 0 && d3.Len() == 0, d4
 }
 
 /*
