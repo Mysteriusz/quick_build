@@ -123,7 +123,7 @@ func DiffFiles(_f1 qbio.FileArray, _f2 qbio.FileArray) (diff FileDiff){
 	for _, e := range _f1{
 		if !s1[e.FullPath]{
 			files[e.FullPath] = e
-			count[e.FullPath]++
+			count[e.FullPath] = 1
 			s1[e.FullPath] = true
 		}
 	}
@@ -142,6 +142,8 @@ func DiffFiles(_f1 qbio.FileArray, _f2 qbio.FileArray) (diff FileDiff){
 			*/
 			if f.ComputeHash() == e.ComputeHash(){
 				count[e.FullPath] = 0
+			}else{
+				count[e.FullPath] = 1
 			}
 			s2[e.FullPath] = true
 		}
@@ -177,7 +179,7 @@ func DiffObjects(_f1 qb.ObjectSet, _f2 qb.ObjectSet) (diff ObjectDiff){
 
 		if !s1[k]{
 			objs[k] = e
-			count[k]++
+			count[k] = 1
 			s1[k] = true
 		}
 	}
@@ -200,7 +202,9 @@ func DiffObjects(_f1 qb.ObjectSet, _f2 qb.ObjectSet) (diff ObjectDiff){
 				Compare hashes to determine file content change
 			*/
 			if f.ComputeHash() == e.ComputeHash(){
-				count[k]++
+				count[k] = 0
+			}else{
+				count[k] = 1
 			}
 			s2[k] = true
 		}

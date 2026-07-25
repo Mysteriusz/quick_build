@@ -4,7 +4,9 @@ import(
 	"os"
 	"fmt"
 
+	"qb/policies/llvm/clang/cfg"
 	"qb/qbio"
+	"qb/misc"
 	"qb/build"
 	"qb/configs"
 	"qb/build/runner"
@@ -44,6 +46,9 @@ err_config_file:
 }
 
 func main(){
+	r, d := clang.ParseD(qbio.InitFile("D:\\ax_project\\ax_virt_layer\\win64\\user\\build\\i64_cpu.d"))
+	_ = r
+	misc.PrintArray(d.Deps.AllPaths())
 	args := parse_args(os.Args)
 
 	cfg, res := configs.ConfigLoad(args.ConfigFile)

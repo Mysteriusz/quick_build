@@ -39,6 +39,17 @@ func DiffOutForAny(_qb_state *qb.BuildState, _vc_state *vc.FileState) (vc.Object
 	}
 
 	var out_diff vc.ObjectDiff
+	for _, obj := range _vc_state.Pipe().OutWorkingSet{
+		if obj.Type != qb.TYPE_FILE{
+			continue
+		}
+
+		if !obj.Exists(){
+			out_diff.Modified = _vc_state.Pipe().OutWorkingSet
+			continue
+		}
+	}
+
 	return out_diff, qb.BuildError{}.None()
 }
 

@@ -13,6 +13,7 @@ type PolicyInfo struct{
 	base 		policies.PolicyFile
 	vc.HeaderDiffProvider
 	vc.SourceDiffProvider
+	vc.InputDiffProvider
 	vc.OutputDiffProvider
 }
 
