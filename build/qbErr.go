@@ -5,6 +5,11 @@ import(
 	"errors"
 )
 
+type ResultError struct{
+	Objects	[]string
+	Err 	error
+}
+
 type BuildError struct{
 	Objects	[]string
 	Pipe	string
@@ -32,12 +37,28 @@ func(_err BuildError) NilArgument(_state *BuildState) BuildError{
 
 func(err BuildError) Message() string{
 	if len(err.Objects) == 0{
-		return fmt.Sprintf("Error in pipe: %s\n" + err.Err.Error(), err.Pipe)
+		return fmt.Sprintf("Error in pipe: %s\n%s\n", err.Pipe, err.Err.Error())
 	}else{
-		return fmt.Sprintf("Error in pipe: %s\n" + err.Err.Error(), err.Pipe, err.Objects)
+		return fmt.Sprintf("Error in pipe: %s\n%s\n With Objects:%s", err.Pipe, err.Err.Error(), err.Objects)
 	}
 }
 func(err BuildError) Check() bool{
+	return err.Err != nil
+}
+
+func(ResultError) None() ResultError{
+	return ResultError{}
+}
+func(_err ResultError) New(_msg string, _objs ...string) ResultError{
+	_err.Err = errors.New(_msg)
+	_err.Objects = _objs
+	return _err
+}
+
+func(err ResultError) Message() string{
+	return fmt.Sprintf("Error: %s\n", err.Err.Error())
+}
+func(err ResultError) Check() bool{
 	return err.Err != nil
 }
 

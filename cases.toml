@@ -5,6 +5,7 @@ name = "t0"
 header_directory = "D:/fld/inc"
 source_directory = "D:/fld/src"
 output_directory = "D:/fld/build"
+policies_directory = "D:/ax_project/quick_build_new/policies"
 
 ## 0
 [[Entry.Pipeline]]

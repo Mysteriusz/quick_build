@@ -1,6 +1,8 @@
 package ar
 
 import(
+	"path/filepath"
+
 	"qb/build"
 	"qb/policies"
 	"qb/policies/vc"
@@ -18,17 +20,21 @@ type PolicyInfo struct{
 	vc.OutputDiffProvider
 }
 
-const POLICY_FILE_PATH string = "./policies/llvm/ar.toml"
+const POLICY_FILE_PATH string = "/llvm/ar.toml"
 
 func (_policy *PolicyInfo) GetCapabilities() policies.Capabilities{
 	return policies.Capabilities{
 		VersionControl: true,
 	}
 }
-func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
-	file, res := policies.LoadPolicyFile(POLICY_FILE_PATH)
-	if !res{
-		return nil
+func (_policy *PolicyInfo) GetFile(_search_directory string) *policies.PolicyFile{
+	if _policy.base.File.IsOpen(){
+		return &_policy.base
+	}
+
+	file, res := policies.LoadPolicyFile(filepath.Join(_search_directory, POLICY_FILE_PATH))
+	if res.Check(){
+		panic(res.Message())
 	}
 
 	_policy.base = file

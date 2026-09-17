@@ -9,7 +9,7 @@ type Capabilities struct{
 } 
 type PolicyInfoInt interface{
 	GetCapabilities() Capabilities
-	GetFile() *PolicyFile
+	GetFile(_search_directory string) *PolicyFile
 	/*
 		Execute policy on the build state object
 	*/

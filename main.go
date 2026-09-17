@@ -4,9 +4,7 @@ import(
 	"os"
 	"fmt"
 
-	"qb/policies/llvm/clang/cfg"
 	"qb/qbio"
-	"qb/misc"
 	"qb/build"
 	"qb/configs"
 	"qb/build/runner"
@@ -26,29 +24,59 @@ func check_arg_value(args []string, idx int) (string){
 
 func parse_args(args []string) args_desc {
 	var desc args_desc 
-	for idx := 1; idx < len(args); idx++{
+	var message string
+
+	for idx := 1; idx < len(args); idx += 2{
 		arg := args[idx]
-		if (arg == "--config-file" || arg == "-f") && desc.ConfigFile == ""{
+		if arg == "--config-file" || arg == "-f"{
+			if desc.ConfigFile != ""{
+				message = arg
+				goto err_arg_repeat
+			}
+
 			desc.ConfigFile = check_arg_value(args, idx)
-			idx++
-		}else{ goto err_config_file }
+		}else{
+			message = "Invalid config file provided."
+			goto err_arg_invalid 
+		}
 	}
 
-err_config_file:
+	if desc.ConfigFile == ""{
+		message = "--config-file"
+		goto err_arg_missing
+	}
 	if !qbio.InitFile(desc.ConfigFile).IsValid(){
-		println("Argument parser error.")
-		println("Invalid config file provided.")
-		println("'"+ desc.ConfigFile + "'")
-		os.Exit(1)
+		message = desc.ConfigFile
+		goto err_arg_invalid
 	}
 
 	return desc
+
+err_arg_invalid:
+	fmt.Println("Argument parser error.")
+	fmt.Println("Invalid argument provided:")
+	fmt.Println("'" + message + "'")
+	os.Exit(1)
+
+err_arg_repeat:
+	fmt.Println("Argument parser error.")
+	fmt.Println("Repeated argument provided: ")
+	fmt.Println("'" + message + "'")
+	os.Exit(1)
+
+err_arg_missing:
+	fmt.Println("Argument parser error.")
+	fmt.Println("Missing required argument: ")
+	fmt.Println("'" + message + "'")
+	os.Exit(1)
+
+	// Should never return here 
+	return args_desc{};
 }
 
 func main(){
-	r, d := clang.ParseD(qbio.InitFile("D:\\ax_project\\ax_virt_layer\\win64\\user\\build\\i64_cpu.d"))
-	_ = r
-	misc.PrintArray(d.Deps.AllPaths())
+	fmt.Println("Quick build.")
+
 	args := parse_args(os.Args)
 
 	cfg, res := configs.ConfigLoad(args.ConfigFile)
@@ -72,7 +100,7 @@ func main(){
 
 		err = runner.ExecuteFromState(&state)
 		if err.Check(){
-			println(err.Message())
+			fmt.Println(err.Message())
 			return
 		}
 	}

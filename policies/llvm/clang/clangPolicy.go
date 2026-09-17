@@ -1,6 +1,8 @@
 package clang
 
 import(
+	"path/filepath"
+
 	"qb/build"
 	"qb/policies"
 	"qb/policies/vc"
@@ -17,16 +19,15 @@ type PolicyInfo struct{
 	vc.OutputDiffProvider
 }
 
-const POLICY_FILE_PATH string = "./policies/llvm/clang.toml"
-func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
+const POLICY_FILE_PATH string = "/llvm/clang.toml"
+func (_policy *PolicyInfo) GetFile(_search_directory string) *policies.PolicyFile{
 	if _policy.base.File.IsOpen(){
 		return &_policy.base
 	}
 
-	file, res := policies.LoadPolicyFile(POLICY_FILE_PATH)
-	if !res{
-		println(POLICY_FILE_PATH)
-		panic("Corrupted policy file")
+	file, res := policies.LoadPolicyFile(filepath.Join(_search_directory, POLICY_FILE_PATH))
+	if res.Check(){
+		panic(res.Message())
 	}
 
 	_policy.base = file

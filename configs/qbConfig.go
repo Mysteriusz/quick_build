@@ -25,6 +25,7 @@ type ConfigEntry struct{
 	HeaderDirectory 	string	 `toml:"header_directory"`
 	SourceDirectory 	string	 `toml:"source_directory"`
 	OutputDirectory 	string	 `toml:"output_directory"`
+	PoliciesDirectory 	string	 `toml:"policies_directory"`
 	Pipeline 		[]PipeEntry `toml:"Pipeline"`
 }
 type Config struct{

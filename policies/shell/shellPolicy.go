@@ -1,6 +1,8 @@
 package shell
 
 import(
+	"path/filepath"
+
 	"qb/build"
 	"qb/policies"
 
@@ -13,18 +15,24 @@ type PolicyInfo struct{
 	config		*shell.PolicyConfig
 }
 
-const POLICY_FILE_PATH string = "./policies/llvm/shell.toml"
+const POLICY_FILE_PATH string = "/shell/shell.toml"
 
 func (_policy *PolicyInfo) GetCapabilities() policies.Capabilities{
 	return policies.Capabilities{
 		VersionControl: false,
 	}
 }
-func (_policy *PolicyInfo) GetFile() *policies.PolicyFile{
-	file, res := policies.LoadPolicyFile(POLICY_FILE_PATH)
-	if !res{
-		return nil
+func (_policy *PolicyInfo) GetFile(_search_directory string) *policies.PolicyFile{
+	if _policy.base.File.IsOpen(){
+		return &_policy.base
 	}
+
+	file, res := policies.LoadPolicyFile(filepath.Join(_search_directory, POLICY_FILE_PATH))
+	if res.Check(){
+		panic(res.Message())
+	}
+
+	_policy.base = file
 	return &file
 }
 func (_policy *PolicyInfo) Run(_state *qb.BuildState) qb.BuildError{

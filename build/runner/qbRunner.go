@@ -128,7 +128,7 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 
 	fmt.Println("==================================")
 	fmt.Println("POLICY INFO")
-	fmt.Println("Policy file path: ", policy.GetFile().File.FullPath)
+	fmt.Println("Policy file path: ", policy.GetFile(_state.Config.PoliciesDirectory).File.FullPath)
 	fmt.Println("Policy file alias: ", _state.CurrentPipe().CommandPolicyAlias)
 	fmt.Println("Policy name: ", _state.CurrentPipe().CommandPolicyName)
 	fmt.Println("==================================")
@@ -159,6 +159,16 @@ func ExecutePolicy(_state *qb.BuildState, _data any) qb.BuildError{
 			or state hash has changed
 		*/
 		if pipe.AlwaysRebuild || vc.StateUniqueHash(_state) != vc_state.Pipe().StateHash{
+			/*
+				Manually set the input set to save it in the end
+				since providers not run their functions
+
+				If this was missing then when input working set > 0
+				the entire thing would have to be built 2 times to save input working set
+
+				TODO: Maybe change to vc.InputDiffProvider run?
+			*/
+			vc_state.DiffInput.Modified = _state.WorkingSet
 			goto rebuild
 		}
 
